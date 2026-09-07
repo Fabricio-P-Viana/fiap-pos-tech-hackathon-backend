@@ -375,8 +375,6 @@ O container `app` aguarda o healthcheck do banco antes de iniciar, executa migra
 
 - **Clean Architecture:** definir corretamente as responsabilidades de cada camada seguindo os princípios de Clean Architecture. Esta é a primeira vez desenvolvendo com esse nível de separação de responsabilidades, e o processo de refatoração contínua (ex: mover regras de negócio dos use cases para as entidades) foi essencial para alcançar uma arquitetura mais coesa.
 
-Testando Pipeline
-
 ---
 
 ## Participante
