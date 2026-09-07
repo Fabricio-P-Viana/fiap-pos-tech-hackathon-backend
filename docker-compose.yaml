@@ -1,0 +1,53 @@
+services:
+  app:
+    build: .
+    image: fabriciopereiraviana/hackathon-backend:latest
+    ports:
+      - "3001:3000"
+    env_file:
+      - ./.env
+    volumes:
+      - .:/usr/src/app
+    command: >
+      sh -c "npm run db:create 2>/dev/null || true &&
+             npm run db:migrate &&
+             npm start"
+    networks:
+      - mynetwork
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres:18
+    ports:
+      - "5432:5432"
+    env_file:
+      - ./.env
+    networks:
+      - mynetwork
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgAdmin:
+    image: dpage/pgadmin4
+    ports:
+      - "8080:80"
+    env_file:
+      - ./.env
+    networks:
+      - mynetwork
+    depends_on:
+      db:
+        condition: service_healthy
+
+networks:
+  mynetwork:
+    driver: bridge
+
+volumes:
+  db-data:
