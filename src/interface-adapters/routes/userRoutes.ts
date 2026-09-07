@@ -9,7 +9,7 @@ import {
   DeleteUserUseCase,
   FindOneByIdUserUseCase,
   FindUsersByRoleUseCase,
-  CreateTeacherUseCase,
+  CreateManagerUseCase,
 } from "../../application/user/use-cases/index.ts";
 import { AuthService } from "../../domain/services/AuthService.ts";
 import { authMiddleware } from "../middlewares/auth.ts";
@@ -37,7 +37,7 @@ export class UserRoutes {
       new DeleteUserUseCase(this.repository),
       new FindOneByIdUserUseCase(this.repository),
       new FindUsersByRoleUseCase(this.repository),
-      new CreateTeacherUseCase(this.repository, this.authService),
+      new CreateManagerUseCase(this.repository, this.authService)
     );
   }
 
@@ -67,7 +67,7 @@ export class UserRoutes {
      *         description: Erro interno do servidor
      */
     this.userRoutes.post("/", (req, res, next) =>
-      this.userController.createUser({ req, res, next }),
+      this.userController.createUser({ req, res, next })
     );
 
     /**
@@ -104,7 +104,7 @@ export class UserRoutes {
       "/teachers",
       authMiddleware(this.authService),
       authorize(UserRole.MANAGER),
-      (req, res, next) => this.userController.createTeacher({ req, res, next }),
+      (req, res, next) => this.userController.createTeacher({ req, res, next })
     );
 
     /**
@@ -131,7 +131,7 @@ export class UserRoutes {
       "/",
       authMiddleware(this.authService),
       authorize(UserRole.MANAGER),
-      (req, res, next) => this.userController.findAllUsers({ req, res, next }),
+      (req, res, next) => this.userController.findAllUsers({ req, res, next })
     );
 
     /**
@@ -139,14 +139,14 @@ export class UserRoutes {
      * /users/role:
      *   get:
      *     tags: [User]
-     *     summary: Buscar usuários por role (TEACHER ou STUDENT)
+     *     summary: Buscar usuários por role (REQUESTER ou MANAGER)
      *     parameters:
      *       - in: query
      *         name: role
      *         required: true
      *         schema:
      *           type: string
-     *           enum: [TEACHER, STUDENT]
+     *           enum: [REQUESTER, MANAGER]
      *         description: Role utilizada para filtrar os usuários
      *     security:
      *     - bearerAuth: []
@@ -173,7 +173,7 @@ export class UserRoutes {
       authMiddleware(this.authService),
       authorize(UserRole.MANAGER),
       (req, res, next) =>
-        this.userController.findUsersByRole({ req, res, next }),
+        this.userController.findUsersByRole({ req, res, next })
     );
 
     /**
@@ -209,7 +209,7 @@ export class UserRoutes {
       "/:id",
       authMiddleware(this.authService),
       authorize(UserRole.MANAGER),
-      (req, res, next) => this.userController.findUserById({ req, res, next }),
+      (req, res, next) => this.userController.findUserById({ req, res, next })
     );
 
     /**
@@ -250,7 +250,7 @@ export class UserRoutes {
     this.userRoutes.put(
       "/:id",
       authMiddleware(this.authService),
-      (req, res, next) => this.userController.updateUser({ req, res, next }),
+      (req, res, next) => this.userController.updateUser({ req, res, next })
     );
 
     /**
@@ -281,7 +281,7 @@ export class UserRoutes {
     this.userRoutes.delete(
       "/:id",
       authMiddleware(this.authService),
-      (req, res, next) => this.userController.deleteUser({ req, res, next }),
+      (req, res, next) => this.userController.deleteUser({ req, res, next })
     );
 
     return this.userRoutes;

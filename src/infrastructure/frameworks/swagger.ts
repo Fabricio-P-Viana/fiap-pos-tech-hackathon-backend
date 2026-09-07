@@ -40,7 +40,7 @@ const swaggerDefinition = {
           id: { type: "integer", example: 1 },
           name: { type: "string", example: "Fulano" },
           email: { type: "string", example: "fulano@mail.com" },
-          role: { type: "string", example: "TEACHER" },
+          role: { type: "string", example: "REQUESTER" },
           createdAt: { type: "string", format: "date-time" },
           updatedAt: { type: "string", format: "date-time" },
         },

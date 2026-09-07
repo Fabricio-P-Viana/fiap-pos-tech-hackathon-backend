@@ -5,7 +5,7 @@ import type {
   DeleteUserUseCase,
   FindOneByIdUserUseCase,
   FindUsersByRoleUseCase,
-  CreateTeacherUseCase,
+  CreateManagerUseCase,
 } from "../../application/user/use-cases/index.ts";
 import {
   CreateUserDTO,
@@ -23,7 +23,7 @@ export default class UserController {
   private deleteUserUseCase: DeleteUserUseCase;
   private findOneByIdUserUseCase: FindOneByIdUserUseCase;
   private findUsersByRoleUseCase: FindUsersByRoleUseCase;
-  private createTeacherUseCase: CreateTeacherUseCase;
+  private createTeacherUseCase: CreateManagerUseCase;
 
   constructor(
     createUserUseCase: CreateUserUseCase,
@@ -32,7 +32,7 @@ export default class UserController {
     deleteUserUseCase: DeleteUserUseCase,
     findOneByIdUserUseCase: FindOneByIdUserUseCase,
     findUsersByRoleUseCase: FindUsersByRoleUseCase,
-    createTeacherUseCase: CreateTeacherUseCase,
+    createTeacherUseCase: CreateManagerUseCase
   ) {
     this.createUserUseCase = createUserUseCase;
     this.findAllUserUseCase = findAllUserUseCase;
@@ -86,7 +86,7 @@ export default class UserController {
 
       if (!Object.values(UserRole).includes(role as UserRole)) {
         throw new ValidationError(
-          `Role must be one of: ${Object.values(UserRole).join(", ")}`,
+          `Role must be one of: ${Object.values(UserRole).join(", ")}`
         );
       }
 
@@ -125,7 +125,7 @@ export default class UserController {
       const updatedUser = await this.updateUserUseCase.execute(
         userId,
         dto,
-        currentUserId,
+        currentUserId
       );
       res.status(200).json(UserView.render(updatedUser));
     } catch (error) {

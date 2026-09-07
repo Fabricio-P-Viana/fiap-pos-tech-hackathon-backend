@@ -4,7 +4,7 @@ import type { CreateUserDTO } from "../dtos/index.ts";
 import type { AuthService } from "../../../domain/services/AuthService.ts";
 import { ValidationError } from "../../../domain/errors/ValidationError.ts";
 
-export class CreateTeacherUseCase {
+export class CreateManagerUseCase {
   private userRepository: UserRepository;
   private authService: AuthService;
 

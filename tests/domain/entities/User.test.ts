@@ -2,24 +2,24 @@ import { User, UserRole } from "../../../src/domain/entities/User";
 
 describe("User entity", () => {
   describe("isTeacher", () => {
-    it("deve retornar true quando role for TEACHER", () => {
+    it("deve retornar true quando role for REQUESTER", () => {
       const user = new User({
         name: "João",
         email: "j@email.com",
         password: "x",
         role: UserRole.MANAGER,
       });
-      expect(user.isTeacher()).toBe(true);
+      expect(user.isAdmin()).toBe(true);
     });
 
-    it("deve retornar false quando role for STUDENT", () => {
+    it("deve retornar false quando role for MANAGER", () => {
       const user = new User({
         name: "Maria",
         email: "m@email.com",
         password: "x",
         role: UserRole.REQUESTER,
       });
-      expect(user.isTeacher()).toBe(false);
+      expect(user.isAdmin()).toBe(false);
     });
   });
 
@@ -46,7 +46,7 @@ describe("User entity", () => {
   });
 
   describe("canModifyUser", () => {
-    it("deve retornar true quando TEACHER tentar modificar outro usuário", () => {
+    it("deve retornar true quando REQUESTER tentar modificar outro usuário", () => {
       const teacher = new User({
         id: 1,
         name: "Prof",
@@ -57,7 +57,7 @@ describe("User entity", () => {
       expect(teacher.canModifyUser(2)).toBe(true);
     });
 
-    it("deve retornar true quando TEACHER tentar modificar a si mesmo", () => {
+    it("deve retornar true quando REQUESTER tentar modificar a si mesmo", () => {
       const teacher = new User({
         id: 1,
         name: "Prof",
@@ -68,7 +68,7 @@ describe("User entity", () => {
       expect(teacher.canModifyUser(1)).toBe(true);
     });
 
-    it("deve retornar true quando STUDENT tentar modificar a si mesmo", () => {
+    it("deve retornar true quando MANAGER tentar modificar a si mesmo", () => {
       const student = new User({
         id: 2,
         name: "Maria",
@@ -79,7 +79,7 @@ describe("User entity", () => {
       expect(student.canModifyUser(2)).toBe(true);
     });
 
-    it("deve retornar false quando STUDENT tentar modificar outro usuário", () => {
+    it("deve retornar false quando MANAGER tentar modificar outro usuário", () => {
       const student = new User({
         id: 2,
         name: "Maria",
@@ -92,7 +92,7 @@ describe("User entity", () => {
   });
 
   describe("canModifyPost", () => {
-    it("deve retornar true quando TEACHER for o autor do post", () => {
+    it("deve retornar true quando REQUESTER for o autor do post", () => {
       const teacher = new User({
         id: 1,
         name: "Prof",
@@ -103,7 +103,7 @@ describe("User entity", () => {
       expect(teacher.canModifyPost(1)).toBe(true);
     });
 
-    it("deve retornar false quando TEACHER não for o autor do post", () => {
+    it("deve retornar false quando REQUESTER não for o autor do post", () => {
       const teacher = new User({
         id: 1,
         name: "Prof",
@@ -114,7 +114,7 @@ describe("User entity", () => {
       expect(teacher.canModifyPost(2)).toBe(false);
     });
 
-    it("deve retornar false quando STUDENT tentar modificar post", () => {
+    it("deve retornar false quando MANAGER tentar modificar post", () => {
       const student = new User({
         id: 2,
         name: "Maria",

@@ -1,6 +1,6 @@
 export enum UserRole {
-  TEACHER = "TEACHER",
-  STUDENT = "STUDENT",
+  REQUESTER = "REQUESTER",
+  MANAGER = "MANAGER",
 }
 
 export interface UserData {
@@ -46,5 +46,9 @@ export class User {
 
   isMe(userId: number): boolean {
     return this.id === userId;
+  }
+
+  isAdmin(): boolean {
+    return this.role === UserRole.MANAGER;
   }
 }

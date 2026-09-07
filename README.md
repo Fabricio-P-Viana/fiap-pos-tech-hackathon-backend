@@ -177,7 +177,7 @@ src/
 │   │   └── UserController.ts
 │   ├── middlewares/
 │   │   ├── auth.ts                  # Validação do token JWT
-│   │   ├── authorize.ts             # Verificação de role (TEACHER/STUDENT)
+│   │   ├── authorize.ts             # Verificação de role (REQUESTER/MANAGER)
 │   │   ├── errorHandler.ts          # Tratamento centralizado de erros
 │   │   └── requestLogger.ts         # Log de requisições
 │   ├── presenters/
@@ -209,13 +209,13 @@ src/
 
 ### Usuários
 
-| Método   | Rota         | Descrição                     | Auth | Role    |
-| -------- | ------------ | ----------------------------- | ---- | ------- |
-| `POST`   | `/users`     | Criar novo usuário (cadastro) | Não  | —       |
-| `GET`    | `/users`     | Listar todos os usuários      | Sim  | TEACHER |
-| `GET`    | `/users/:id` | Buscar usuário por ID         | Sim  | TEACHER |
-| `PUT`    | `/users/:id` | Atualizar um usuário          | Sim  | —       |
-| `DELETE` | `/users/:id` | Excluir um usuário            | Sim  | —       |
+| Método   | Rota         | Descrição                     | Auth | Role      |
+| -------- | ------------ | ----------------------------- | ---- | --------- |
+| `POST`   | `/users`     | Criar novo usuário (cadastro) | Não  | —         |
+| `GET`    | `/users`     | Listar todos os usuários      | Sim  | REQUESTER |
+| `GET`    | `/users/:id` | Buscar usuário por ID         | Sim  | REQUESTER |
+| `PUT`    | `/users/:id` | Atualizar um usuário          | Sim  | —         |
+| `DELETE` | `/users/:id` | Excluir um usuário            | Sim  | —         |
 
 ### Autenticação
 
@@ -231,23 +231,23 @@ A aplicação usa **JWT (JSON Web Token)** para autenticação e **RBAC (Role-Ba
 
 ### Fluxo
 
-1. O usuário se cadastra via `POST /users` (role padrão: `STUDENT`).
+1. O usuário se cadastra via `POST /users` (role padrão: `MANAGER`).
 2. Realiza login via `POST /auth/login` e recebe um token JWT.
 3. Envia o token no header `Authorization: Bearer <token>` nas rotas protegidas.
 
 ### Roles
 
-| Role      | Permissões                                                                                |
-| --------- | ----------------------------------------------------------------------------------------- |
-| `TEACHER` | CRUD completo de posts, gerenciamento de usuários, pode alterar/deletar qualquer usuário. |
-| `STUDENT` | Visualizar e buscar posts. Pode alterar e deletar apenas a si mesmo.                      |
+| Role        | Permissões                                                                                |
+| ----------- | ----------------------------------------------------------------------------------------- |
+| `REQUESTER` | CRUD completo de posts, gerenciamento de usuários, pode alterar/deletar qualquer usuário. |
+| `MANAGER`   | Visualizar e buscar posts. Pode alterar e deletar apenas a si mesmo.                      |
 
 ### Regras de negócio na entidade `User`
 
 As regras de autorização estão na **camada de domínio** (entidade `User`), seguindo Clean Architecture:
 
-- `canModifyUser(targetUserId)` — retorna `true` se o usuário for `TEACHER` ou se estiver se modificando.
-- `canModifyPost(postAuthorId)` — retorna `true` se o usuário for `TEACHER` e autor do post.
+- `canModifyUser(targetUserId)` — retorna `true` se o usuário for `REQUESTER` ou se estiver se modificando.
+- `canModifyPost(postAuthorId)` — retorna `true` se o usuário for `REQUESTER` e autor do post.
 
 Os use cases apenas consultam essas regras, sem conter lógica de negócio.
 
@@ -271,7 +271,7 @@ Acesse localmente: **http://localhost:3000/api-docs**
 
 ### Modelos
 
-- **UserModel** — `id`, `name`, `email` (unique), `password` (hash bcrypt), `role` (TEACHER/STUDENT), `createdAt`, `updatedAt`
+- **UserModel** — `id`, `name`, `email` (unique), `password` (hash bcrypt), `role` (REQUESTER/MANAGER), `createdAt`, `updatedAt`
 
 ## Testes unitários
 
