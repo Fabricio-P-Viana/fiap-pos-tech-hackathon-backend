@@ -41,7 +41,7 @@ export class User {
   }
 
   canModifyUser(targetUserId: number): boolean {
-    return this.isMe(targetUserId);
+    return this.isAdmin() || this.isMe(targetUserId);
   }
 
   isMe(userId: number): boolean {

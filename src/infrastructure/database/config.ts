@@ -20,8 +20,8 @@ const shouldUseSSL =
 const config: DbConfig = {
   url: process.env.DATABASE_URL,
   username: process.env.DB_USER || "postgres",
-  password: process.env.DB_PASS || "postgres",
-  database: process.env.DB_NAME || "blog",
+  password: process.env.DB_PASS || "resolveai",
+  database: process.env.DB_NAME || "resolveai",
   host: process.env.DB_HOST || "db",
   dialect: "postgres",
   dialectOptions: shouldUseSSL

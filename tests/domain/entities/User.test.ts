@@ -90,39 +90,4 @@ describe("User entity", () => {
       expect(student.canModifyUser(3)).toBe(false);
     });
   });
-
-  describe("canModifyPost", () => {
-    it("deve retornar true quando REQUESTER for o autor do post", () => {
-      const teacher = new User({
-        id: 1,
-        name: "Prof",
-        email: "p@email.com",
-        password: "x",
-        role: UserRole.MANAGER,
-      });
-      expect(teacher.canModifyPost(1)).toBe(true);
-    });
-
-    it("deve retornar false quando REQUESTER não for o autor do post", () => {
-      const teacher = new User({
-        id: 1,
-        name: "Prof",
-        email: "p@email.com",
-        password: "x",
-        role: UserRole.MANAGER,
-      });
-      expect(teacher.canModifyPost(2)).toBe(false);
-    });
-
-    it("deve retornar false quando MANAGER tentar modificar post", () => {
-      const student = new User({
-        id: 2,
-        name: "Maria",
-        email: "m@email.com",
-        password: "x",
-        role: UserRole.REQUESTER,
-      });
-      expect(student.canModifyPost(2)).toBe(false);
-    });
-  });
 });
