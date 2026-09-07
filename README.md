@@ -247,7 +247,6 @@ A aplicação usa **JWT (JSON Web Token)** para autenticação e **RBAC (Role-Ba
 As regras de autorização estão na **camada de domínio** (entidade `User`), seguindo Clean Architecture:
 
 - `canModifyUser(targetUserId)` — retorna `true` se o usuário for `REQUESTER` ou se estiver se modificando.
-- `canModifyPost(postAuthorId)` — retorna `true` se o usuário for `REQUESTER` e autor do post.
 
 Os use cases apenas consultam essas regras, sem conter lógica de negócio.
 
@@ -295,7 +294,7 @@ Os testes foram escritos com **Jest** seguindo a estratégia **AAA (Arrange, Act
 ```
 tests/
 ├── domain/entities/
-│   └── User.test.ts                    # Entidade User (isTeacher, isMe, canModifyUser, canModifyPost)
+│   └── User.test.ts                    # Entidade User (isTeacher, isMe, canModifyUser)
 ├── application/
 │   ├── auth/
 │   │   ├── dtos/LoginDTO.test.ts       # Validação do LoginDTO
