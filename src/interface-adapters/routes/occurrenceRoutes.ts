@@ -17,6 +17,9 @@ import { ChangeOccurrenceStatusUseCase } from "../../application/occurrence/use-
 import { DeleteOccurrenceUseCase } from "../../application/occurrence/use-cases/DeleteOccurrence.ts";
 import { FindAllOccurrenceEventUseCase } from "../../application/occurrence/use-cases/FindAllOccurrenceEvent.ts";
 import { FindOccurrenceEventsUseCase } from "../../application/occurrence/use-cases/FindOccurrenceEvents.ts";
+import { AssignOccurrenceUseCase } from "../../application/occurrence/use-cases/AssignOccurrence.ts";
+import { UserModel } from "../../infrastructure/database/sequelize.ts";
+import SequelizeUserRepository from "../../infrastructure/repositories/postgresql/SequelizeUserRepository.ts";
 import { authMiddleware } from "../middlewares/auth.ts";
 import { authorize } from "../middlewares/authorize.ts";
 import { UserRole } from "../../domain/entities/User.ts";
@@ -51,7 +54,12 @@ export class OccurrenceRoutes {
       ),
       new ChangeOccurrenceStatusUseCase(occurrenceRepository, eventRepository),
       new DeleteOccurrenceUseCase(occurrenceRepository),
-      new FindOccurrenceEventsUseCase(eventRepository, occurrenceRepository)
+      new FindOccurrenceEventsUseCase(eventRepository, occurrenceRepository),
+      new AssignOccurrenceUseCase(
+        occurrenceRepository,
+        eventRepository,
+        new SequelizeUserRepository(UserModel)
+      )
     );
     this.findAllEvents = new FindAllOccurrenceEventUseCase(eventRepository);
 
@@ -139,6 +147,11 @@ export class OccurrenceRoutes {
      */
     this.router.get("/:id/events", (req, res, next) =>
       this.controller.findEvents({ req, res, next })
+    );
+    this.router.patch(
+      "/:id/assignee",
+      authorize(UserRole.MANAGER),
+      (req, res, next) => this.controller.assign({ req, res, next })
     );
     /**
      * @swagger
