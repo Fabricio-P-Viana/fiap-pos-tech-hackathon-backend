@@ -9,6 +9,8 @@ import type { FindOneByIdOccurrenceUseCase } from "../../application/occurrence/
 import type { UpdateOccurrenceUseCase } from "../../application/occurrence/use-cases/UpdateOccurrence.ts";
 import type { ChangeOccurrenceStatusUseCase } from "../../application/occurrence/use-cases/ChangeOccurrenceStatus.ts";
 import type { DeleteOccurrenceUseCase } from "../../application/occurrence/use-cases/DeleteOccurrence.ts";
+import type { FindOccurrenceEventsUseCase } from "../../application/occurrence/use-cases/FindOccurrenceEvents.ts";
+import OccurrenceEventView from "../presenters/OccurrenceEventView.ts";
 import OccurrenceView from "../presenters/OccurrenceView.ts";
 
 export default class OccurrenceController {
@@ -18,7 +20,8 @@ export default class OccurrenceController {
     private readonly findOneByIdOccurrenceUseCase: FindOneByIdOccurrenceUseCase,
     private readonly updateOccurrenceUseCase: UpdateOccurrenceUseCase,
     private readonly changeOccurrenceStatusUseCase: ChangeOccurrenceStatusUseCase,
-    private readonly deleteOccurrenceUseCase: DeleteOccurrenceUseCase
+    private readonly deleteOccurrenceUseCase: DeleteOccurrenceUseCase,
+    private readonly findOccurrenceEventsUseCase: FindOccurrenceEventsUseCase
   ) {}
 
   private parseId(id: string | string[]): number {
@@ -77,11 +80,23 @@ export default class OccurrenceController {
     }
   }
 
+  async findEvents({ req, res, next }: ReqResNextFunction): Promise<void> {
+    try {
+      const events = await this.findOccurrenceEventsUseCase.execute(
+        this.parseId(req.params.id)
+      );
+      res.status(200).json(OccurrenceEventView.renderMany(events));
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async update({ req, res, next }: ReqResNextFunction): Promise<void> {
     try {
       const occurrence = await this.updateOccurrenceUseCase.execute(
         this.parseId(req.params.id),
-        UpdateOccurrenceDTO.create(req.body)
+        UpdateOccurrenceDTO.create(req.body),
+        this.actorId(req)
       );
       res.status(200).json(OccurrenceView.render(occurrence));
     } catch (error) {

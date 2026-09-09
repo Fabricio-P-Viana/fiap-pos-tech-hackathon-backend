@@ -29,6 +29,14 @@ export default class SequelizeOccurrenceEventRepository
     return events.map((event) => this.mapToDomain(event));
   }
 
+  async findByOccurrenceId(occurrenceId: number): Promise<OccurrenceEvent[]> {
+    const events = await this.occurrenceEventModel.findAll({
+      where: { occurrenceId },
+      order: [["createdAt", "ASC"]],
+    });
+    return events.map((event) => this.mapToDomain(event));
+  }
+
   async findById(id: number): Promise<OccurrenceEvent | null> {
     const event = await this.occurrenceEventModel.findByPk(id);
     return event ? this.mapToDomain(event) : null;

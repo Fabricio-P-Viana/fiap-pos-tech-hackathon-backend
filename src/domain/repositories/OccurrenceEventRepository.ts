@@ -6,6 +6,7 @@ import {
 export interface OccurrenceEventRepository {
   create(_eventData: OccurrenceEventData): Promise<OccurrenceEvent>;
   findAll(): Promise<OccurrenceEvent[]>;
+  findByOccurrenceId(_occurrenceId: number): Promise<OccurrenceEvent[]>;
   findById(_id: number): Promise<OccurrenceEvent | null>;
   update(
     _id: number,

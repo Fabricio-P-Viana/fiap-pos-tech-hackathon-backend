@@ -72,10 +72,10 @@ export class UserRoutes {
 
     /**
      * @swagger
-     * /users/teachers:
+     * /users/managers:
      *   post:
      *     tags: [User]
-     *     summary: Criar um novo professor
+     *     summary: Criar um novo gestor
      *     security:
      *     - bearerAuth: []
      *     requestBody:
@@ -86,7 +86,7 @@ export class UserRoutes {
      *             $ref: '#/components/schemas/UserInput'
      *     responses:
      *       201:
-     *         description: Professor criado com sucesso
+     *         description: Gestor criado com sucesso
      *         content:
      *           application/json:
      *             schema:
@@ -96,15 +96,15 @@ export class UserRoutes {
      *       401:
      *         description: Token não fornecido ou inválido
      *       403:
-     *         description: Sem permissão para criar professores
+     *         description: Sem permissão para criar gestores
      *       500:
      *         description: Erro interno do servidor
      */
     this.userRoutes.post(
-      "/teachers",
+      "/managers",
       authMiddleware(this.authService),
       authorize(UserRole.MANAGER),
-      (req, res, next) => this.userController.createTeacher({ req, res, next })
+      (req, res, next) => this.userController.createManager({ req, res, next })
     );
 
     /**

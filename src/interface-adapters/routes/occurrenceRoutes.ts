@@ -16,6 +16,7 @@ import { UpdateOccurrenceUseCase } from "../../application/occurrence/use-cases/
 import { ChangeOccurrenceStatusUseCase } from "../../application/occurrence/use-cases/ChangeOccurrenceStatus.ts";
 import { DeleteOccurrenceUseCase } from "../../application/occurrence/use-cases/DeleteOccurrence.ts";
 import { FindAllOccurrenceEventUseCase } from "../../application/occurrence/use-cases/FindAllOccurrenceEvent.ts";
+import { FindOccurrenceEventsUseCase } from "../../application/occurrence/use-cases/FindOccurrenceEvents.ts";
 import { authMiddleware } from "../middlewares/auth.ts";
 import { authorize } from "../middlewares/authorize.ts";
 import { UserRole } from "../../domain/entities/User.ts";
@@ -43,9 +44,14 @@ export class OccurrenceRoutes {
       ),
       new FindAllOccurrenceUseCase(occurrenceRepository),
       new FindOneByIdOccurrenceUseCase(occurrenceRepository),
-      new UpdateOccurrenceUseCase(occurrenceRepository, categoryRepository),
+      new UpdateOccurrenceUseCase(
+        occurrenceRepository,
+        categoryRepository,
+        eventRepository
+      ),
       new ChangeOccurrenceStatusUseCase(occurrenceRepository, eventRepository),
-      new DeleteOccurrenceUseCase(occurrenceRepository)
+      new DeleteOccurrenceUseCase(occurrenceRepository),
+      new FindOccurrenceEventsUseCase(eventRepository, occurrenceRepository)
     );
     this.findAllEvents = new FindAllOccurrenceEventUseCase(eventRepository);
 
@@ -117,6 +123,22 @@ export class OccurrenceRoutes {
           next(error);
         }
       }
+    );
+    /**
+     * @swagger
+     * /occurrences/{id}/events:
+     *   get:
+     *     tags: [Occurrence]
+     *     summary: Consultar o histórico de uma ocorrência
+     *     security: [{ bearerAuth: [] }]
+     *     parameters:
+     *       - { in: path, name: id, required: true, schema: { type: integer } }
+     *     responses:
+     *       200: { description: Timeline ordenada da ocorrência }
+     *       404: { description: Ocorrência não encontrada }
+     */
+    this.router.get("/:id/events", (req, res, next) =>
+      this.controller.findEvents({ req, res, next })
     );
     /**
      * @swagger

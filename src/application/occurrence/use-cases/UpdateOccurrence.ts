@@ -1,6 +1,8 @@
 import type { Occurrence } from "../../../domain/entities/Occurrence.ts";
 import type { OccurrenceRepository } from "../../../domain/repositories/OccurrenceRepository.ts";
 import type { CategoryRepository } from "../../../domain/repositories/CategoryRepository.ts";
+import type { OccurrenceEventRepository } from "../../../domain/repositories/OccurrenceEventRepository.ts";
+import { OccurrenceEventType } from "../../../domain/enums/occurrence-event-type.enum.ts";
 import { ResourceNotFoundError } from "../../../domain/errors/ResourceNotFoundError.ts";
 import { ValidationError } from "../../../domain/errors/ValidationError.ts";
 import type { UpdateOccurrenceDTO } from "../dtos/UpdateOccurrenceDTO.ts";
@@ -8,10 +10,15 @@ import type { UpdateOccurrenceDTO } from "../dtos/UpdateOccurrenceDTO.ts";
 export class UpdateOccurrenceUseCase {
   constructor(
     private readonly occurrenceRepository: OccurrenceRepository,
-    private readonly categoryRepository: CategoryRepository
+    private readonly categoryRepository: CategoryRepository,
+    private readonly occurrenceEventRepository: OccurrenceEventRepository
   ) {}
 
-  async execute(id: number, dto: UpdateOccurrenceDTO): Promise<Occurrence> {
+  async execute(
+    id: number,
+    dto: UpdateOccurrenceDTO,
+    actorId: number
+  ): Promise<Occurrence> {
     const occurrence = await this.occurrenceRepository.findById(id);
     if (!occurrence) throw new ResourceNotFoundError("Occurrence", id);
     if (occurrence.status === "RESOLVED" || occurrence.status === "CANCELLED") {
@@ -38,6 +45,16 @@ export class UpdateOccurrenceUseCase {
       ...(dto.resolution !== undefined && { resolution: dto.resolution }),
     });
     if (!updated) throw new ResourceNotFoundError("Occurrence", id);
+
+    if (dto.priority !== undefined && dto.priority !== occurrence.priority) {
+      await this.occurrenceEventRepository.create({
+        occurrenceId: id,
+        type: OccurrenceEventType.PRIORITY_CHANGED,
+        previousValue: occurrence.priority,
+        newValue: dto.priority,
+        actorId,
+      });
+    }
     return updated;
   }
 }
