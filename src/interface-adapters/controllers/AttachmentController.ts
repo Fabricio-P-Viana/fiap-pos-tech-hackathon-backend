@@ -7,7 +7,9 @@ import type { FindAllAttachmentUseCase } from "../../application/attachment/use-
 import type { FindOneByIdAttachmentUseCase } from "../../application/attachment/use-cases/FindOneByIdAttachment.ts";
 import type { UpdateAttachmentUseCase } from "../../application/attachment/use-cases/UpdateAttachment.ts";
 import type { DeleteAttachmentUseCase } from "../../application/attachment/use-cases/DeleteAttachment.ts";
+import type { UploadOccurrenceAttachmentUseCase } from "../../application/attachment/use-cases/UploadOccurrenceAttachment.ts";
 import AttachmentView from "../presenters/AttachmentView.ts";
+import type { Actor } from "../../domain/services/OccurrencePolicy.ts";
 
 export default class AttachmentController {
   constructor(
@@ -15,7 +17,8 @@ export default class AttachmentController {
     private readonly findAllAttachmentUseCase: FindAllAttachmentUseCase,
     private readonly findOneByIdAttachmentUseCase: FindOneByIdAttachmentUseCase,
     private readonly updateAttachmentUseCase: UpdateAttachmentUseCase,
-    private readonly deleteAttachmentUseCase: DeleteAttachmentUseCase
+    private readonly deleteAttachmentUseCase: DeleteAttachmentUseCase,
+    private readonly uploadOccurrenceAttachmentUseCase?: UploadOccurrenceAttachmentUseCase
   ) {}
 
   private parseId(id: string | string[]): number {
@@ -92,6 +95,38 @@ export default class AttachmentController {
     try {
       await this.deleteAttachmentUseCase.execute(this.parseId(req.params.id));
       res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async upload({ req, res, next }: ReqResNextFunction): Promise<void> {
+    try {
+      if (!this.uploadOccurrenceAttachmentUseCase) {
+        throw new ValidationError("Upload feature is not configured");
+      }
+      const file = (req as unknown as { file?: Express.Multer.File }).file;
+      if (!file) throw new ValidationError("File is required (field 'file')");
+
+      const occurrenceId = parseInt(req.body.occurrenceId, 10);
+      if (Number.isNaN(occurrenceId))
+        throw new ValidationError("occurrenceId must be a valid number");
+
+      if (!req.user)
+        throw new ValidationError("Authenticated user is required");
+      const actor: Actor = { id: req.user.userId, role: req.user.role };
+
+      const attachment = await this.uploadOccurrenceAttachmentUseCase.execute(
+        {
+          occurrenceId,
+          buffer: file.buffer,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          sizeBytes: file.size,
+        },
+        actor
+      );
+      res.status(201).json(AttachmentView.render(attachment));
     } catch (error) {
       next(error);
     }

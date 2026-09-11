@@ -3,6 +3,7 @@ import RatingController from "../controllers/RatingController.ts";
 import {
   RatingModel,
   OccurrenceModel,
+  CategoryModel,
 } from "../../infrastructure/database/sequelize.ts";
 import SequelizeRatingRepository from "../../infrastructure/repositories/postgresql/SequelizeRatingRepository.ts";
 import SequelizeOccurrenceRepository from "../../infrastructure/repositories/postgresql/SequelizeOccurrenceRepository.ts";
@@ -21,7 +22,8 @@ export class RatingRoutes {
     this.router = Router();
     const ratingRepository = new SequelizeRatingRepository(RatingModel);
     const occurrenceRepository = new SequelizeOccurrenceRepository(
-      OccurrenceModel
+      OccurrenceModel,
+      CategoryModel
     );
     const controller = new RatingController(
       new CreateRatingUseCase(ratingRepository, occurrenceRepository),

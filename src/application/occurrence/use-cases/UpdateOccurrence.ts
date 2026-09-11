@@ -3,9 +3,23 @@ import type { OccurrenceRepository } from "../../../domain/repositories/Occurren
 import type { CategoryRepository } from "../../../domain/repositories/CategoryRepository.ts";
 import type { OccurrenceEventRepository } from "../../../domain/repositories/OccurrenceEventRepository.ts";
 import { OccurrenceEventType } from "../../../domain/enums/occurrence-event-type.enum.ts";
+import { OccurrenceStatus, isFinalStatus } from "../../../domain/enums/occurrence-status.enum.ts";
 import { ResourceNotFoundError } from "../../../domain/errors/ResourceNotFoundError.ts";
+import { UnauthorizedError } from "../../../domain/errors/UnauthorizedError.ts";
 import { ValidationError } from "../../../domain/errors/ValidationError.ts";
 import type { UpdateOccurrenceDTO } from "../dtos/UpdateOccurrenceDTO.ts";
+import type { Actor } from "../../../domain/services/OccurrencePolicy.ts";
+import { OccurrencePolicy } from "../../../domain/services/OccurrencePolicy.ts";
+
+const REQUESTER_ONLY_ALLOWED_FIELDS = [
+  "title",
+  "description",
+  "categoryId",
+  "locationText",
+  "locationReference",
+  "latitude",
+  "longitude",
+] as const;
 
 export class UpdateOccurrenceUseCase {
   constructor(
@@ -17,12 +31,31 @@ export class UpdateOccurrenceUseCase {
   async execute(
     id: number,
     dto: UpdateOccurrenceDTO,
-    actorId: number
+    actor: Actor
   ): Promise<Occurrence> {
     const occurrence = await this.occurrenceRepository.findById(id);
     if (!occurrence) throw new ResourceNotFoundError("Occurrence", id);
-    if (occurrence.status === "RESOLVED" || occurrence.status === "CANCELLED") {
-      throw new ValidationError("Final occurrences cannot be edited");
+
+    if (!OccurrencePolicy.canEditContent(actor, occurrence)) {
+      if (isFinalStatus(occurrence.status as OccurrenceStatus)) {
+        throw new ValidationError("Final occurrences cannot be edited");
+      }
+      throw new UnauthorizedError(id);
+    }
+
+    // Solicitante só pode alterar título, descrição, categoria e
+    // localização; prioridade e resolução são exclusivas do gestor.
+    if (!OccurrencePolicy.isManager(actor)) {
+      const forbiddenField = Object.keys(dto).find(
+        (key) =>
+          (dto as Record<string, unknown>)[key] !== undefined &&
+          !REQUESTER_ONLY_ALLOWED_FIELDS.includes(
+            key as (typeof REQUESTER_ONLY_ALLOWED_FIELDS)[number]
+          )
+      );
+      if (forbiddenField) {
+        throw new UnauthorizedError(id);
+      }
     }
 
     if (dto.categoryId !== undefined) {
@@ -52,7 +85,7 @@ export class UpdateOccurrenceUseCase {
         type: OccurrenceEventType.PRIORITY_CHANGED,
         previousValue: occurrence.priority,
         newValue: dto.priority,
-        actorId,
+        actorId: actor.id,
       });
     }
     return updated;

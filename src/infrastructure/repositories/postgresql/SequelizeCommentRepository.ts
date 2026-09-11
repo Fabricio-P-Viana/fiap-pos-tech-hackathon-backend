@@ -24,6 +24,14 @@ export default class SequelizeCommentRepository implements CommentRepository {
     return comments.map((comment) => this.mapToDomain(comment));
   }
 
+  async findByOccurrenceId(occurrenceId: number): Promise<Comment[]> {
+    const comments = await this.commentModel.findAll({
+      where: { occurrenceId },
+      order: [["createdAt", "ASC"]],
+    });
+    return comments.map((comment) => this.mapToDomain(comment));
+  }
+
   async findById(id: number): Promise<Comment | null> {
     const comment = await this.commentModel.findByPk(id);
     return comment ? this.mapToDomain(comment) : null;

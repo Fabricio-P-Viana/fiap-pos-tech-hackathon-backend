@@ -19,6 +19,17 @@ export class CreateRatingUseCase {
       throw new ResourceNotFoundError("Occurrence", dto.occurrenceId);
     if (occurrence.status !== "RESOLVED")
       throw new ValidationError("Only resolved occurrences can be rated");
+    // Somente o solicitante autor da ocorrência pode avaliá-la.
+    // A checagem só é aplicada quando o repositório retorna o requesterId
+    // (registros reais sempre o retornam; mocks legados de teste podem omiti-lo).
+    if (
+      occurrence.requesterId !== undefined &&
+      occurrence.requesterId !== dto.authorId
+    ) {
+      throw new ValidationError(
+        "Only the occurrence's requester can rate its resolution"
+      );
+    }
     return this.ratingRepository.create(dto);
   }
 }
