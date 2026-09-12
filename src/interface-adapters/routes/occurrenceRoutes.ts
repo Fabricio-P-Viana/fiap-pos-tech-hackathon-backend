@@ -6,11 +6,13 @@ import {
   OccurrenceEventModel,
   CategoryModel,
   UserModel,
+  RatingModel,
 } from "../../infrastructure/database/sequelize.ts";
 import SequelizeOccurrenceRepository from "../../infrastructure/repositories/postgresql/SequelizeOccurrenceRepository.ts";
 import SequelizeOccurrenceEventRepository from "../../infrastructure/repositories/postgresql/SequelizeOccurrenceEventRepository.ts";
 import SequelizeCategoryRepository from "../../infrastructure/repositories/postgresql/SequelizeCategoryRepository.ts";
 import SequelizeUserRepository from "../../infrastructure/repositories/postgresql/SequelizeUserRepository.ts";
+import SequelizeRatingRepository from "../../infrastructure/repositories/postgresql/SequelizeRatingRepository.ts";
 import { CreateOccurrenceUseCase } from "../../application/occurrence/use-cases/CreateOccurrence.ts";
 import { FindAllOccurrenceUseCase } from "../../application/occurrence/use-cases/FindAllOccurrence.ts";
 import { FindOneByIdOccurrenceUseCase } from "../../application/occurrence/use-cases/FindOneByIdOccurrence.ts";
@@ -63,7 +65,10 @@ export class OccurrenceRoutes {
         eventRepository,
         new SequelizeUserRepository(UserModel)
       ),
-      new GetDashboardIndicatorsUseCase(occurrenceRepository)
+      new GetDashboardIndicatorsUseCase(
+        occurrenceRepository,
+        new SequelizeRatingRepository(RatingModel)
+      )
     );
     this.findAllEvents = new FindAllOccurrenceEventUseCase(eventRepository);
 
@@ -120,7 +125,7 @@ export class OccurrenceRoutes {
      *     summary: Indicadores agregados para o painel do gestor
      *     security: [{ bearerAuth: [] }]
      *     responses:
-     *       200: { description: Indicadores de volume, status, prioridade, categoria e tempo médio de resolução }
+     *       200: { description: Indicadores de volume, status, prioridade, categoria, tempo médio de resolução e notas das avaliações (média, distribuição e média por categoria) }
      *       403: { description: Apenas gestores podem acessar o dashboard }
      */
     this.router.get(

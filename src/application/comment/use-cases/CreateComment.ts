@@ -5,6 +5,7 @@ import { ResourceNotFoundError } from "../../../domain/errors/ResourceNotFoundEr
 import { UnauthorizedError } from "../../../domain/errors/UnauthorizedError.ts";
 import { ValidationError } from "../../../domain/errors/ValidationError.ts";
 import { UserRole } from "../../../domain/entities/User.ts";
+import { OccurrencePolicy } from "../../../domain/services/OccurrencePolicy.ts";
 import type { CreateCommentDTO } from "../dtos/CreateCommentDTO.ts";
 
 export class CreateCommentUseCase {
@@ -24,12 +25,16 @@ export class CreateCommentUseCase {
       if (dto.isInternal && actorRole !== UserRole.MANAGER) {
         throw new ValidationError("Only managers can create internal comments");
       }
-      const isManager = actorRole === UserRole.MANAGER;
-      const isOwner =
-        occurrence.requesterId !== undefined &&
-        occurrence.requesterId === dto.authorId;
-      if (!isManager && !isOwner) {
+      const actor = { id: dto.authorId, role: actorRole };
+      if (!OccurrencePolicy.canView(actor, occurrence)) {
         throw new UnauthorizedError(dto.occurrenceId);
+      }
+      // Depois de resolvida ou cancelada a ocorrência é histórico: só a
+      // avaliação do solicitante é aceita.
+      if (!OccurrencePolicy.canComment(actor, occurrence)) {
+        throw new ValidationError(
+          "Occurrences in a final status no longer accept comments"
+        );
       }
     }
 

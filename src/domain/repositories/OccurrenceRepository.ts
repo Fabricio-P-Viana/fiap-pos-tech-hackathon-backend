@@ -1,6 +1,7 @@
 import { Occurrence, OccurrenceData } from "../entities/Occurrence.ts";
 import { OccurrenceStatus } from "../enums/occurrence-status.enum.ts";
 import { Priority } from "../enums/priority.enum.ts";
+import type { RatingIndicators } from "./RatingRepository.ts";
 
 export interface OccurrenceFilter {
   requesterId?: number;
@@ -27,6 +28,8 @@ export interface PaginatedResult<T> {
 
 export interface DashboardIndicators {
   total: number;
+  /** Indicadores de satisfação; ausente quando não há fonte de avaliações. */
+  ratings?: RatingIndicators;
   byStatus: Record<string, number>;
   byPriority: Record<string, number>;
   byCategory: Array<{ categoryId: number; categoryName: string; total: number }>;

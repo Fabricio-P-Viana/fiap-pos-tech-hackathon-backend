@@ -3,6 +3,7 @@ import { Attachment, AttachmentData } from "../entities/Attachment.ts";
 export interface AttachmentRepository {
   create(_attachmentData: AttachmentData): Promise<Attachment>;
   findAll(): Promise<Attachment[]>;
+  findByOccurrenceId(_occurrenceId: number): Promise<Attachment[]>;
   findById(_id: number): Promise<Attachment | null>;
   update(
     _id: number,

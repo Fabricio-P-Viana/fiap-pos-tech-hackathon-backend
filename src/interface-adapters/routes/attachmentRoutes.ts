@@ -13,9 +13,12 @@ import { FindOneByIdAttachmentUseCase } from "../../application/attachment/use-c
 import { UpdateAttachmentUseCase } from "../../application/attachment/use-cases/UpdateAttachment.ts";
 import { DeleteAttachmentUseCase } from "../../application/attachment/use-cases/DeleteAttachment.ts";
 import { UploadOccurrenceAttachmentUseCase } from "../../application/attachment/use-cases/UploadOccurrenceAttachment.ts";
+import { FindOccurrenceAttachmentsUseCase } from "../../application/attachment/use-cases/FindOccurrenceAttachments.ts";
 import { createStorageService } from "../../infrastructure/storage/StorageServiceFactory.ts";
 import { uploadImage } from "../middlewares/uploadImage.ts";
 import { authMiddleware } from "../middlewares/auth.ts";
+import { authorize } from "../middlewares/authorize.ts";
+import { UserRole } from "../../domain/entities/User.ts";
 import type { AuthService } from "../../domain/services/AuthService.ts";
 
 export class AttachmentRoutes {
@@ -41,7 +44,12 @@ export class AttachmentRoutes {
         attachmentRepository,
         occurrenceRepository,
         storageService
-      )
+      ),
+      new FindOccurrenceAttachmentsUseCase(
+        attachmentRepository,
+        occurrenceRepository
+      ),
+      storageService
     );
     this.router.use(authMiddleware(authService));
     /**
@@ -92,13 +100,28 @@ export class AttachmentRoutes {
      * /attachments:
      *   get:
      *     tags: [Attachment]
-     *     summary: Listar anexos
+     *     summary: Listar anexos de uma ocorrência
+     *     description: >
+     *       Com "occurrenceId" a listagem respeita o escopo da ocorrência
+     *       (solicitante vê as próprias, gestor vê todas). Sem o parâmetro a
+     *       listagem é global e restrita a gestores.
      *     security: [{ bearerAuth: [] }]
+     *     parameters:
+     *       - { in: query, name: occurrenceId, required: false, schema: { type: integer } }
      *     responses:
-     *       200: { description: Lista de anexos }
+     *       200: { description: Lista de anexos com URL pública }
+     *       403: { description: Usuário não tem acesso à ocorrência }
      */
-    this.router.get("/", (req, res, next) =>
-      controller.findAll({ req, res, next })
+    this.router.get(
+      "/",
+      (req, res, next) => {
+        // A listagem sem filtro expõe anexos de todas as ocorrências.
+        if (req.query.occurrenceId === undefined) {
+          return authorize(UserRole.MANAGER)(req, res, next);
+        }
+        return next();
+      },
+      (req, res, next) => controller.findAll({ req, res, next })
     );
     /**
      * @swagger

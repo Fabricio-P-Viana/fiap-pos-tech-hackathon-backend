@@ -39,6 +39,12 @@ export class UploadOccurrenceAttachmentUseCase {
     if (!OccurrencePolicy.canView(actor, occurrence)) {
       throw new UnauthorizedError(input.occurrenceId);
     }
+    // Ocorrência encerrada é histórico: não recebe novas imagens.
+    if (!OccurrencePolicy.canAttach(actor, occurrence)) {
+      throw new ValidationError(
+        "Occurrences in a final status no longer accept attachments"
+      );
+    }
 
     if (!ALLOWED_MIME_TYPES.includes(input.mimeType)) {
       throw new ValidationError(

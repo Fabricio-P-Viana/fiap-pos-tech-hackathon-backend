@@ -57,9 +57,14 @@ export class RatingRoutes {
      *   get:
      *     tags: [Rating]
      *     summary: Listar avaliações
+     *     description: >
+     *       O gestor vê todas as avaliações; o solicitante vê apenas as que
+     *       escreveu. Use "occurrenceId" para a avaliação de uma ocorrência.
      *     security: [{ bearerAuth: [] }]
+     *     parameters:
+     *       - { in: query, name: occurrenceId, required: false, schema: { type: integer } }
      *     responses:
-     *       200: { description: Lista de avaliações }
+     *       200: { description: Lista de avaliações no escopo do usuário }
      */
     this.router.get("/", (req, res, next) =>
       controller.findAll({ req, res, next })
