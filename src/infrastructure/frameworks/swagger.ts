@@ -109,8 +109,15 @@ const swaggerDefinition = {
         properties: {
           id: { type: "integer", example: 1 },
           requesterId: { type: "integer", example: 2 },
+          requesterName: { type: "string", nullable: true, example: "Ana Lima" },
           assigneeId: { type: "integer", nullable: true, example: 3 },
+          assigneeName: {
+            type: "string",
+            nullable: true,
+            example: "Carlos Souza",
+          },
           categoryId: { type: "integer", example: 1 },
+          categoryName: { type: "string", nullable: true, example: "Elétrica" },
           title: { type: "string", example: "Lâmpada queimada" },
           description: {
             type: "string",
@@ -195,10 +202,23 @@ const swaggerDefinition = {
               "ASSIGNEE_CHANGED",
             ],
           },
+          occurrenceTitle: { type: "string", nullable: true },
           previousValue: { type: "string", nullable: true },
           newValue: { type: "string", nullable: true },
+          previousLabel: {
+            type: "string",
+            nullable: true,
+            description:
+              "previousValue legível (ids de usuário resolvidos em nome)",
+          },
+          newLabel: {
+            type: "string",
+            nullable: true,
+            description: "newValue legível (ids de usuário resolvidos em nome)",
+          },
           note: { type: "string", nullable: true },
           actorId: { type: "integer" },
+          actorName: { type: "string", nullable: true },
           createdAt: { type: "string", format: "date-time" },
         },
       },
@@ -208,6 +228,7 @@ const swaggerDefinition = {
           id: { type: "integer" },
           occurrenceId: { type: "integer" },
           authorId: { type: "integer" },
+          authorName: { type: "string", nullable: true },
           body: { type: "string" },
           isInternal: { type: "boolean" },
           createdAt: { type: "string", format: "date-time" },

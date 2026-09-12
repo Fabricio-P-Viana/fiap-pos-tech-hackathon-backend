@@ -6,6 +6,8 @@ export interface CommentData {
   isInternal?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  /** Projeção somente leitura preenchida pelo repositório. */
+  authorName?: string | null;
 }
 
 export class Comment {
@@ -16,6 +18,7 @@ export class Comment {
   isInternal?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  authorName?: string | null;
 
   constructor({
     id,
@@ -25,6 +28,7 @@ export class Comment {
     isInternal,
     createdAt,
     updatedAt,
+    authorName,
   }: CommentData) {
     this.id = id;
     this.occurrenceId = occurrenceId;
@@ -33,5 +37,6 @@ export class Comment {
     this.isInternal = isInternal;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
+    this.authorName = authorName;
   }
 }

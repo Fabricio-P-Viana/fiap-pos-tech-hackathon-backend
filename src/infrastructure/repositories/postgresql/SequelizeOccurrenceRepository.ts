@@ -27,8 +27,29 @@ export default class SequelizeOccurrenceRepository
     this.categoryModel = categoryModel;
   }
 
+  /**
+   * Relacionamentos carregados apenas para projetar os nomes exibidos na UI
+   * (solicitante, responsável e categoria), evitando que o cliente precise
+   * de uma segunda chamada — e de permissão — para traduzir ids em nomes.
+   */
+  private static readonly NAME_INCLUDES = [
+    { association: "requester", attributes: ["id", "name"], required: false },
+    { association: "assignee", attributes: ["id", "name"], required: false },
+    { association: "category", attributes: ["id", "name"], required: false },
+  ];
+
   private mapToDomain(occurrenceModel: OccurrenceModel): Occurrence {
-    return new Occurrence(occurrenceModel.get({ plain: true }));
+    const plain = occurrenceModel.get({ plain: true }) as OccurrenceData & {
+      requester?: { name?: string } | null;
+      assignee?: { name?: string } | null;
+      category?: { name?: string } | null;
+    };
+
+    const occurrence = new Occurrence(plain);
+    occurrence.requesterName = plain.requester?.name ?? null;
+    occurrence.assigneeName = plain.assignee?.name ?? null;
+    occurrence.categoryName = plain.category?.name ?? null;
+    return occurrence;
   }
 
   async create(occurrenceData: OccurrenceData): Promise<Occurrence> {
@@ -78,6 +99,7 @@ export default class SequelizeOccurrenceRepository
 
     const { rows, count } = await this.occurrenceModel.findAndCountAll({
       where,
+      include: SequelizeOccurrenceRepository.NAME_INCLUDES,
       limit,
       offset: (page - 1) * limit,
       order: [["createdAt", "DESC"]],
@@ -93,7 +115,9 @@ export default class SequelizeOccurrenceRepository
   }
 
   async findById(id: number): Promise<Occurrence | null> {
-    const occurrence = await this.occurrenceModel.findByPk(id);
+    const occurrence = await this.occurrenceModel.findByPk(id, {
+      include: SequelizeOccurrenceRepository.NAME_INCLUDES,
+    });
     return occurrence ? this.mapToDomain(occurrence) : null;
   }
 
@@ -105,7 +129,9 @@ export default class SequelizeOccurrenceRepository
     if (!occurrence) return null;
 
     await occurrence.update(occurrenceData);
-    return this.mapToDomain(occurrence);
+    // Relê com os relacionamentos para que a resposta já traga os nomes
+    // atualizados (o responsável muda justamente nestas operações).
+    return this.findById(id);
   }
 
   async delete(id: number): Promise<boolean> {

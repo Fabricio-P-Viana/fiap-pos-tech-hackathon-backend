@@ -38,7 +38,8 @@ export class OccurrenceRoutes {
       CategoryModel
     );
     const eventRepository = new SequelizeOccurrenceEventRepository(
-      OccurrenceEventModel
+      OccurrenceEventModel,
+      UserModel
     );
     const categoryRepository = new SequelizeCategoryRepository(CategoryModel);
     this.controller = new OccurrenceController(
