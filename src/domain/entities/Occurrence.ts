@@ -18,9 +18,17 @@ export interface OccurrenceData {
   latitude?: number | null;
   longitude?: number | null;
   resolution?: string | null;
+  cancellationReason?: string | null;
   resolvedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
+  /**
+   * Projeções somente leitura preenchidas pelo repositório quando os
+   * relacionamentos são carregados. Nunca são persistidas.
+   */
+  requesterName?: string | null;
+  assigneeName?: string | null;
+  categoryName?: string | null;
 }
 
 export class Occurrence {
@@ -37,9 +45,13 @@ export class Occurrence {
   latitude?: number | null;
   longitude?: number | null;
   resolution?: string | null;
+  cancellationReason?: string | null;
   resolvedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
+  requesterName?: string | null;
+  assigneeName?: string | null;
+  categoryName?: string | null;
 
   constructor({
     id,
@@ -55,9 +67,13 @@ export class Occurrence {
     latitude,
     longitude,
     resolution,
+    cancellationReason,
     resolvedAt,
     createdAt,
     updatedAt,
+    requesterName,
+    assigneeName,
+    categoryName,
   }: OccurrenceData) {
     this.id = id;
     this.requesterId = requesterId;
@@ -72,8 +88,12 @@ export class Occurrence {
     this.latitude = latitude;
     this.longitude = longitude;
     this.resolution = resolution;
+    this.cancellationReason = cancellationReason;
     this.resolvedAt = resolvedAt;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
+    this.requesterName = requesterName;
+    this.assigneeName = assigneeName;
+    this.categoryName = categoryName;
   }
 }

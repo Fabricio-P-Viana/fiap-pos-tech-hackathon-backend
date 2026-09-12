@@ -10,7 +10,6 @@ import type { FindOneByIdOccurrenceUseCase } from "../../application/occurrence/
 import type { UpdateOccurrenceUseCase } from "../../application/occurrence/use-cases/UpdateOccurrence.ts";
 import type { ChangeOccurrenceStatusUseCase } from "../../application/occurrence/use-cases/ChangeOccurrenceStatus.ts";
 import type { CancelOccurrenceUseCase } from "../../application/occurrence/use-cases/CancelOccurrence.ts";
-import type { DeleteOccurrenceUseCase } from "../../application/occurrence/use-cases/DeleteOccurrence.ts";
 import type { FindOccurrenceEventsUseCase } from "../../application/occurrence/use-cases/FindOccurrenceEvents.ts";
 import type { AssignOccurrenceUseCase } from "../../application/occurrence/use-cases/AssignOccurrence.ts";
 import type { GetDashboardIndicatorsUseCase } from "../../application/occurrence/use-cases/GetDashboardIndicators.ts";
@@ -27,7 +26,6 @@ export default class OccurrenceController {
     private readonly updateOccurrenceUseCase: UpdateOccurrenceUseCase,
     private readonly changeOccurrenceStatusUseCase: ChangeOccurrenceStatusUseCase,
     private readonly cancelOccurrenceUseCase: CancelOccurrenceUseCase,
-    private readonly deleteOccurrenceUseCase: DeleteOccurrenceUseCase,
     private readonly findOccurrenceEventsUseCase: FindOccurrenceEventsUseCase,
     private readonly assignOccurrenceUseCase: AssignOccurrenceUseCase,
     private readonly getDashboardIndicatorsUseCase: GetDashboardIndicatorsUseCase
@@ -119,7 +117,7 @@ export default class OccurrenceController {
     try {
       const occurrence = await this.assignOccurrenceUseCase.execute(
         this.parseId(req.params.id),
-        this.actorId(req),
+        this.actor(req),
         AssignOccurrenceDTO.create(req.body)
       );
       res.status(200).json(OccurrenceView.render(occurrence));
@@ -145,7 +143,7 @@ export default class OccurrenceController {
     try {
       const occurrence = await this.changeOccurrenceStatusUseCase.execute(
         this.parseId(req.params.id),
-        this.actorId(req),
+        this.actor(req),
         ChangeOccurrenceStatusDTO.create(req.body)
       );
       res.status(200).json(OccurrenceView.render(occurrence));
@@ -159,18 +157,9 @@ export default class OccurrenceController {
       const occurrence = await this.cancelOccurrenceUseCase.execute(
         this.parseId(req.params.id),
         this.actor(req),
-        req.body?.note
+        req.body?.cancellationReason ?? req.body?.reason ?? req.body?.note
       );
       res.status(200).json(OccurrenceView.render(occurrence));
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async delete({ req, res, next }: ReqResNextFunction): Promise<void> {
-    try {
-      await this.deleteOccurrenceUseCase.execute(this.parseId(req.params.id));
-      res.status(204).send();
     } catch (error) {
       next(error);
     }

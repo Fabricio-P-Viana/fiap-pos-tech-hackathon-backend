@@ -16,7 +16,7 @@ export class CancelOccurrenceUseCase {
     private readonly occurrenceEventRepository: OccurrenceEventRepository
   ) {}
 
-  async execute(id: number, actor: Actor, note?: string): Promise<Occurrence> {
+  async execute(id: number, actor: Actor, reason?: string): Promise<Occurrence> {
     const occurrence = await this.occurrenceRepository.findById(id);
     if (!occurrence) throw new ResourceNotFoundError("Occurrence", id);
 
@@ -26,6 +26,14 @@ export class CancelOccurrenceUseCase {
       );
     }
 
+    // O motivo fica registrado na ocorrência e no histórico: o cancelamento
+    // precisa ser explicado porque a solicitação permanece como histórico.
+    const cancellationReason =
+      typeof reason === "string" ? reason.trim() : undefined;
+    if (!cancellationReason) {
+      throw new ValidationError("A cancellation reason is required");
+    }
+
     if (!OccurrencePolicy.canCancel(actor, occurrence)) {
       throw new UnauthorizedError(id);
     }
@@ -33,6 +41,7 @@ export class CancelOccurrenceUseCase {
     const previousStatus = occurrence.status;
     const updated = await this.occurrenceRepository.update(id, {
       status: OccurrenceStatus.CANCELLED,
+      cancellationReason,
     });
     if (!updated) throw new ResourceNotFoundError("Occurrence", id);
 
@@ -41,7 +50,7 @@ export class CancelOccurrenceUseCase {
       type: OccurrenceEventType.STATUS_CHANGED,
       previousValue: previousStatus,
       newValue: OccurrenceStatus.CANCELLED,
-      note,
+      note: cancellationReason,
       actorId: actor.id,
     });
 

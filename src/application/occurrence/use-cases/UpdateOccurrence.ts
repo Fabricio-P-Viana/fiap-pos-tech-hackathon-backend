@@ -40,6 +40,14 @@ export class UpdateOccurrenceUseCase {
       if (isFinalStatus(occurrence.status as OccurrenceStatus)) {
         throw new ValidationError("Final occurrences cannot be edited");
       }
+      if (
+        OccurrencePolicy.isManager(actor) &&
+        (occurrence.assigneeId === null || occurrence.assigneeId === undefined)
+      ) {
+        throw new ValidationError(
+          "An assignee must be defined before managing the occurrence"
+        );
+      }
       throw new UnauthorizedError(id);
     }
 

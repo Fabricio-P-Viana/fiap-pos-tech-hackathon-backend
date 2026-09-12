@@ -17,7 +17,6 @@ import { FindOneByIdOccurrenceUseCase } from "../../application/occurrence/use-c
 import { UpdateOccurrenceUseCase } from "../../application/occurrence/use-cases/UpdateOccurrence.ts";
 import { ChangeOccurrenceStatusUseCase } from "../../application/occurrence/use-cases/ChangeOccurrenceStatus.ts";
 import { CancelOccurrenceUseCase } from "../../application/occurrence/use-cases/CancelOccurrence.ts";
-import { DeleteOccurrenceUseCase } from "../../application/occurrence/use-cases/DeleteOccurrence.ts";
 import { FindAllOccurrenceEventUseCase } from "../../application/occurrence/use-cases/FindAllOccurrenceEvent.ts";
 import { FindOccurrenceEventsUseCase } from "../../application/occurrence/use-cases/FindOccurrenceEvents.ts";
 import { AssignOccurrenceUseCase } from "../../application/occurrence/use-cases/AssignOccurrence.ts";
@@ -57,7 +56,6 @@ export class OccurrenceRoutes {
       ),
       new ChangeOccurrenceStatusUseCase(occurrenceRepository, eventRepository),
       new CancelOccurrenceUseCase(occurrenceRepository, eventRepository),
-      new DeleteOccurrenceUseCase(occurrenceRepository),
       new FindOccurrenceEventsUseCase(eventRepository, occurrenceRepository),
       new AssignOccurrenceUseCase(
         occurrenceRepository,
@@ -188,11 +186,16 @@ export class OccurrenceRoutes {
      *   patch:
      *     tags: [Occurrence]
      *     summary: Atribuir responsável (gestor) à ocorrência
+     *     description: >
+     *       Passo obrigatório antes de qualquer movimentação: a partir da
+     *       atribuição somente o gestor responsável conduz a ocorrência
+     *       (status, edição e cancelamento).
      *     security: [{ bearerAuth: [] }]
      *     parameters:
      *       - { in: path, name: id, required: true, schema: { type: integer } }
      *     responses:
      *       200: { description: Ocorrência atribuída }
+     *       400: { description: Ocorrência em status final }
      *       403: { description: Apenas gestores podem atribuir responsáveis }
      */
     this.router.patch(
@@ -251,8 +254,12 @@ export class OccurrenceRoutes {
      * /occurrences/{id}/status:
      *   patch:
      *     tags: [Occurrence]
-     *     summary: Alterar status da ocorrência (fluxo do gestor)
-     *     description: Registra automaticamente a alteração no histórico e respeita as transições permitidas.
+     *     summary: Alterar status da ocorrência (fluxo do gestor responsável)
+     *     description: >
+     *       Exige responsável definido e só aceita a ação do gestor responsável.
+     *       Registra automaticamente a alteração no histórico e respeita as
+     *       transições permitidas. Para CANCELLED o campo "note" é o motivo do
+     *       cancelamento e é obrigatório.
      *     security: [{ bearerAuth: [] }]
      *     parameters:
      *       - { in: path, name: id, required: true, schema: { type: integer } }
@@ -261,8 +268,8 @@ export class OccurrenceRoutes {
      *       content: { application/json: { schema: { $ref: '#/components/schemas/OccurrenceStatusInput' } } }
      *     responses:
      *       200: { description: Status atualizado }
-     *       400: { description: Transição inválida ou resolução ausente }
-     *       403: { description: Apenas gestores podem alterar status }
+     *       400: { description: Transição inválida, responsável não definido, resolução ausente ou motivo de cancelamento ausente }
+     *       403: { description: Apenas o gestor responsável pode alterar o status }
      */
     this.router.patch(
       "/:id/status",
@@ -278,16 +285,24 @@ export class OccurrenceRoutes {
      *     summary: Cancelar ocorrência
      *     description: >
      *       O solicitante (autor) só pode cancelar enquanto a ocorrência estiver OPEN.
-     *       O gestor pode cancelar qualquer ocorrência que não esteja em status final.
+     *       O gestor responsável pode cancelar enquanto não estiver em status final.
+     *       O motivo do cancelamento é obrigatório e fica registrado na
+     *       ocorrência e no histórico.
      *     security: [{ bearerAuth: [] }]
      *     parameters:
      *       - { in: path, name: id, required: true, schema: { type: integer } }
      *     requestBody:
-     *       required: false
-     *       content: { application/json: { schema: { type: object, properties: { note: { type: string } } } } }
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required: [cancellationReason]
+     *             properties:
+     *               cancellationReason: { type: string, description: Motivo do cancelamento }
      *     responses:
      *       200: { description: Ocorrência cancelada }
-     *       400: { description: Ocorrência já está em status final }
+     *       400: { description: Ocorrência já está em status final ou motivo ausente }
      *       403: { description: Usuário não pode cancelar esta ocorrência }
      *       404: { description: Ocorrência não encontrada }
      */
@@ -295,22 +310,8 @@ export class OccurrenceRoutes {
       this.controller.cancel({ req, res, next })
     );
 
-    /**
-     * @swagger
-     * /occurrences/{id}:
-     *   delete:
-     *     tags: [Occurrence]
-     *     summary: Excluir ocorrência
-     *     security: [{ bearerAuth: [] }]
-     *     parameters:
-     *       - { in: path, name: id, required: true, schema: { type: integer } }
-     *     responses:
-     *       204: { description: Ocorrência excluída }
-     *       404: { description: Ocorrência não encontrada }
-     */
-    this.router.delete("/:id", authorize(UserRole.MANAGER), (req, res, next) =>
-      this.controller.delete({ req, res, next })
-    );
+    // Solicitações não são excluídas: elas permanecem como histórico e o
+    // encerramento indevido é feito por cancelamento (com motivo obrigatório).
   }
 
   getRouter(): Router {

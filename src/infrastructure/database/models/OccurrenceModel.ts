@@ -19,6 +19,7 @@ export interface OccurrenceAttributes {
   latitude?: number | null;
   longitude?: number | null;
   resolution?: string | null;
+  cancellationReason?: string | null;
   resolvedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
@@ -41,6 +42,7 @@ export class OccurrenceModel
   declare latitude: number | null;
   declare longitude: number | null;
   declare resolution: string | null;
+  declare cancellationReason: string | null;
   declare resolvedAt: Date | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
@@ -70,6 +72,7 @@ export default function createOccurrenceModel(
       latitude: { type: DataTypes.DOUBLE, allowNull: true },
       longitude: { type: DataTypes.DOUBLE, allowNull: true },
       resolution: { type: DataTypes.TEXT, allowNull: true },
+      cancellationReason: { type: DataTypes.TEXT, allowNull: true },
       resolvedAt: { type: DataTypes.DATE, allowNull: true },
     },
     {

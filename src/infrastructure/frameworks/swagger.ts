@@ -135,6 +135,7 @@ const swaggerDefinition = {
           latitude: { type: "number", nullable: true },
           longitude: { type: "number", nullable: true },
           resolution: { type: "string", nullable: true },
+          cancellationReason: { type: "string", nullable: true },
           resolvedAt: { type: "string", format: "date-time", nullable: true },
           createdAt: { type: "string", format: "date-time" },
           updatedAt: { type: "string", format: "date-time" },
