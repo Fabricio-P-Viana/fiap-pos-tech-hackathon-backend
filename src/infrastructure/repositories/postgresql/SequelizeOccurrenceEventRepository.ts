@@ -4,7 +4,10 @@ import {
   type OccurrenceEventData,
 } from "../../../domain/entities/OccurrenceEvent.ts";
 import { OccurrenceEventType } from "../../../domain/enums/occurrence-event-type.enum.ts";
-import type { OccurrenceEventRepository } from "../../../domain/repositories/OccurrenceEventRepository.ts";
+import type {
+  OccurrenceEventRepository,
+  RecentEventsFilter,
+} from "../../../domain/repositories/OccurrenceEventRepository.ts";
 import type { OccurrenceEventModel } from "../../database/models/OccurrenceEventModel.ts";
 import type { UserModel } from "../../database/models/UserModel.ts";
 
@@ -89,6 +92,22 @@ export default class SequelizeOccurrenceEventRepository
     const events = await this.occurrenceEventModel.findAll({
       include: SequelizeOccurrenceEventRepository.TIMELINE_INCLUDES,
       order: [["createdAt", "DESC"]],
+    });
+    return this.withAssigneeLabels(
+      events.map((event) => this.mapToDomain(event))
+    );
+  }
+
+  async findRecent(filter: RecentEventsFilter = {}): Promise<OccurrenceEvent[]> {
+    if (filter.occurrenceIds && filter.occurrenceIds.length === 0) return [];
+
+    const events = await this.occurrenceEventModel.findAll({
+      ...(filter.occurrenceIds && {
+        where: { occurrenceId: filter.occurrenceIds },
+      }),
+      include: SequelizeOccurrenceEventRepository.TIMELINE_INCLUDES,
+      order: [["createdAt", "DESC"]],
+      limit: filter.limit ?? 10,
     });
     return this.withAssigneeLabels(
       events.map((event) => this.mapToDomain(event))

@@ -1,4 +1,5 @@
-import { Op, type ModelStatic } from "sequelize";
+import { Op, literal, type ModelStatic, type Order } from "sequelize";
+import { Priority } from "../../../domain/enums/priority.enum.ts";
 import {
   Occurrence,
   type OccurrenceData,
@@ -32,6 +33,13 @@ export default class SequelizeOccurrenceRepository
    * (solicitante, responsável e categoria), evitando que o cliente precise
    * de uma segunda chamada — e de permissão — para traduzir ids em nomes.
    */
+  private static readonly PRIORITY_WEIGHT: Record<Priority, number> = {
+    [Priority.CRITICAL]: 4,
+    [Priority.HIGH]: 3,
+    [Priority.MEDIUM]: 2,
+    [Priority.LOW]: 1,
+  };
+
   private static readonly NAME_INCLUDES = [
     { association: "requester", attributes: ["id", "name"], required: false },
     { association: "assignee", attributes: ["id", "name"], required: false },
@@ -90,6 +98,32 @@ export default class SequelizeOccurrenceRepository
     return where;
   }
 
+  /**
+   * A prioridade é um enum de texto, então ordenar pela coluna daria ordem
+   * alfabética (CRITICAL, HIGH, LOW, MEDIUM). O CASE traduz para severidade.
+   */
+  private buildOrder(filter: OccurrenceFilter): Order {
+    const direction = filter.sortOrder === "ASC" ? "ASC" : "DESC";
+
+    if (filter.sortBy === "priority") {
+      const severityCases = Object.entries(
+        SequelizeOccurrenceRepository.PRIORITY_WEIGHT
+      )
+        .map(([priority, weight]) => `WHEN '${priority}' THEN ${weight}`)
+        .join(" ");
+      return [
+        [
+          literal(`CASE "Occurrence"."priority" ${severityCases} ELSE 0 END`),
+          direction,
+        ],
+        // Empate de prioridade é resolvido pelo tempo de abertura.
+        ["createdAt", "ASC"],
+      ];
+    }
+
+    return [[filter.sortBy ?? "createdAt", direction]];
+  }
+
   async findAll(
     filter: OccurrenceFilter = {}
   ): Promise<PaginatedResult<Occurrence>> {
@@ -102,7 +136,7 @@ export default class SequelizeOccurrenceRepository
       include: SequelizeOccurrenceRepository.NAME_INCLUDES,
       limit,
       offset: (page - 1) * limit,
-      order: [["createdAt", "DESC"]],
+      order: this.buildOrder(filter),
     });
 
     return {

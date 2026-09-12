@@ -1,7 +1,11 @@
 import { ValidationError } from "../../../domain/errors/ValidationError.ts";
 import { OccurrenceStatus } from "../../../domain/enums/occurrence-status.enum.ts";
 import { Priority } from "../../../domain/enums/priority.enum.ts";
-import type { OccurrenceFilter } from "../../../domain/repositories/OccurrenceRepository.ts";
+import type {
+  OccurrenceFilter,
+  OccurrenceSortField,
+} from "../../../domain/repositories/OccurrenceRepository.ts";
+import { OCCURRENCE_SORT_FIELDS } from "../../../domain/repositories/OccurrenceRepository.ts";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -40,6 +44,8 @@ export class OccurrenceFilterDTO {
       resolvedTo,
       page,
       limit,
+      sortBy,
+      sortOrder,
     } = query;
 
     if (status !== undefined && !Object.values(OccurrenceStatus).includes(status as OccurrenceStatus)) {
@@ -50,6 +56,23 @@ export class OccurrenceFilterDTO {
     }
     if (search !== undefined && typeof search !== "string") {
       throw new ValidationError("Search filter must be a string");
+    }
+    if (
+      sortBy !== undefined &&
+      !OCCURRENCE_SORT_FIELDS.includes(sortBy as OccurrenceSortField)
+    ) {
+      throw new ValidationError(
+        `SortBy must be one of: ${OCCURRENCE_SORT_FIELDS.join(", ")}`
+      );
+    }
+    const normalizedSortOrder =
+      typeof sortOrder === "string" ? sortOrder.toUpperCase() : undefined;
+    if (
+      normalizedSortOrder !== undefined &&
+      normalizedSortOrder !== "ASC" &&
+      normalizedSortOrder !== "DESC"
+    ) {
+      throw new ValidationError("SortOrder must be ASC or DESC");
     }
 
     const parsedPage = parseIntOrUndefined(page, "page") ?? DEFAULT_PAGE;
@@ -68,6 +91,8 @@ export class OccurrenceFilterDTO {
       resolvedTo: parseDateOrUndefined(resolvedTo, "resolvedTo"),
       page: parsedPage,
       limit: parsedLimit,
+      sortBy: sortBy as OccurrenceSortField | undefined,
+      sortOrder: normalizedSortOrder as "ASC" | "DESC" | undefined,
     };
   }
 }

@@ -16,7 +16,26 @@ export interface OccurrenceFilter {
   resolvedTo?: Date;
   page?: number;
   limit?: number;
+  sortBy?: OccurrenceSortField;
+  sortOrder?: "ASC" | "DESC";
 }
+
+/**
+ * "priority" ordena pela severidade real (CRITICAL > HIGH > MEDIUM > LOW), não
+ * pela ordem alfabética do enum; "createdAt" equivale ao tempo de abertura.
+ */
+export type OccurrenceSortField =
+  | "createdAt"
+  | "updatedAt"
+  | "priority"
+  | "status";
+
+export const OCCURRENCE_SORT_FIELDS: OccurrenceSortField[] = [
+  "createdAt",
+  "updatedAt",
+  "priority",
+  "status",
+];
 
 export interface PaginatedResult<T> {
   data: T[];

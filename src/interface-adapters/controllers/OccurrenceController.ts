@@ -13,6 +13,7 @@ import type { CancelOccurrenceUseCase } from "../../application/occurrence/use-c
 import type { FindOccurrenceEventsUseCase } from "../../application/occurrence/use-cases/FindOccurrenceEvents.ts";
 import type { AssignOccurrenceUseCase } from "../../application/occurrence/use-cases/AssignOccurrence.ts";
 import type { GetDashboardIndicatorsUseCase } from "../../application/occurrence/use-cases/GetDashboardIndicators.ts";
+import type { FindRecentOccurrenceEventsUseCase } from "../../application/occurrence/use-cases/FindRecentOccurrenceEvents.ts";
 import { AssignOccurrenceDTO } from "../../application/occurrence/dtos/AssignOccurrenceDTO.ts";
 import OccurrenceEventView from "../presenters/OccurrenceEventView.ts";
 import OccurrenceView from "../presenters/OccurrenceView.ts";
@@ -28,7 +29,8 @@ export default class OccurrenceController {
     private readonly cancelOccurrenceUseCase: CancelOccurrenceUseCase,
     private readonly findOccurrenceEventsUseCase: FindOccurrenceEventsUseCase,
     private readonly assignOccurrenceUseCase: AssignOccurrenceUseCase,
-    private readonly getDashboardIndicatorsUseCase: GetDashboardIndicatorsUseCase
+    private readonly getDashboardIndicatorsUseCase: GetDashboardIndicatorsUseCase,
+    private readonly findRecentOccurrenceEventsUseCase: FindRecentOccurrenceEventsUseCase
   ) {}
 
   private parseId(id: string | string[]): number {
@@ -65,9 +67,13 @@ export default class OccurrenceController {
 
   async findAll({ req, res, next }: ReqResNextFunction): Promise<void> {
     try {
-      const filter = OccurrenceFilterDTO.create(
-        req.query as Record<string, unknown>
-      );
+      const query = { ...req.query } as Record<string, unknown>;
+      // Açúcar para a tela "minhas solicitações como responsável": evita o
+      // cliente ter que conhecer o próprio id.
+      if (query.assigneeId === "me") {
+        query.assigneeId = this.actorId(req);
+      }
+      const filter = OccurrenceFilterDTO.create(query);
       const result = await this.findAllOccurrenceUseCase.execute(
         filter,
         this.actor(req)
@@ -96,6 +102,27 @@ export default class OccurrenceController {
             )
           )
         );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async findRecentEvents({
+    req,
+    res,
+    next,
+  }: ReqResNextFunction): Promise<void> {
+    try {
+      const limitRaw = req.query.limit as string | undefined;
+      const limit = limitRaw ? parseInt(limitRaw, 10) : undefined;
+      if (limitRaw && (Number.isNaN(limit) || (limit as number) <= 0))
+        throw new ValidationError("limit must be a positive integer");
+
+      const events = await this.findRecentOccurrenceEventsUseCase.execute(
+        this.actor(req),
+        { limit, assignedToMe: req.query.assignedToMe === "true" }
+      );
+      res.status(200).json(OccurrenceEventView.renderMany(events));
     } catch (error) {
       next(error);
     }

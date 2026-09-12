@@ -23,6 +23,7 @@ import { FindAllOccurrenceEventUseCase } from "../../application/occurrence/use-
 import { FindOccurrenceEventsUseCase } from "../../application/occurrence/use-cases/FindOccurrenceEvents.ts";
 import { AssignOccurrenceUseCase } from "../../application/occurrence/use-cases/AssignOccurrence.ts";
 import { GetDashboardIndicatorsUseCase } from "../../application/occurrence/use-cases/GetDashboardIndicators.ts";
+import { FindRecentOccurrenceEventsUseCase } from "../../application/occurrence/use-cases/FindRecentOccurrenceEvents.ts";
 import { authMiddleware } from "../middlewares/auth.ts";
 import { authorize } from "../middlewares/authorize.ts";
 import { UserRole } from "../../domain/entities/User.ts";
@@ -68,6 +69,10 @@ export class OccurrenceRoutes {
       new GetDashboardIndicatorsUseCase(
         occurrenceRepository,
         new SequelizeRatingRepository(RatingModel)
+      ),
+      new FindRecentOccurrenceEventsUseCase(
+        eventRepository,
+        occurrenceRepository
       )
     );
     this.findAllEvents = new FindAllOccurrenceEventUseCase(eventRepository);
@@ -104,7 +109,9 @@ export class OccurrenceRoutes {
      *       - { in: query, name: status, required: false, schema: { type: string, enum: [OPEN, IN_ANALYSIS, IN_PROGRESS, RESOLVED, CANCELLED] } }
      *       - { in: query, name: priority, required: false, schema: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] } }
      *       - { in: query, name: categoryId, required: false, schema: { type: integer } }
-     *       - { in: query, name: assigneeId, required: false, schema: { type: integer } }
+     *       - { in: query, name: assigneeId, required: false, schema: { type: string }, description: "Id do responsável, ou \"me\" para o próprio usuário autenticado" }
+     *       - { in: query, name: sortBy, required: false, schema: { type: string, enum: [createdAt, updatedAt, priority, status], default: createdAt }, description: "priority ordena por severidade real (CRITICAL > HIGH > MEDIUM > LOW), com empate resolvido pelo tempo de abertura" }
+     *       - { in: query, name: sortOrder, required: false, schema: { type: string, enum: [ASC, DESC], default: DESC } }
      *       - { in: query, name: search, required: false, schema: { type: string } }
      *       - { in: query, name: createdFrom, required: false, schema: { type: string, format: date-time } }
      *       - { in: query, name: createdTo, required: false, schema: { type: string, format: date-time } }
@@ -165,6 +172,33 @@ export class OccurrenceRoutes {
           next(error);
         }
       }
+    );
+
+    /**
+     * @swagger
+     * /occurrences/events/recent:
+     *   get:
+     *     tags: [Occurrence]
+     *     summary: Últimos acontecimentos no escopo do usuário
+     *     description: >
+     *       Resumo para a home: o solicitante recebe os eventos das próprias
+     *       solicitações; o gestor recebe os mais recentes de toda a operação,
+     *       ou apenas dos atendimentos que conduz com assignedToMe=true.
+     *     security: [{ bearerAuth: [] }]
+     *     parameters:
+     *       - { in: query, name: limit, required: false, schema: { type: integer, default: 10, maximum: 30 } }
+     *       - { in: query, name: assignedToMe, required: false, schema: { type: boolean } }
+     *     responses:
+     *       200:
+     *         description: Eventos ordenados do mais recente para o mais antigo
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items: { $ref: '#/components/schemas/OccurrenceEvent' }
+     */
+    this.router.get("/events/recent", (req, res, next) =>
+      this.controller.findRecentEvents({ req, res, next })
     );
 
     /**
