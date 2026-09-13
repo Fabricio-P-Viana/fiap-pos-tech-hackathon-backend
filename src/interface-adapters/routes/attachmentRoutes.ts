@@ -3,6 +3,7 @@ import AttachmentController from "../controllers/AttachmentController.ts";
 import {
   AttachmentModel,
   OccurrenceModel,
+  CategoryModel,
 } from "../../infrastructure/database/sequelize.ts";
 import SequelizeAttachmentRepository from "../../infrastructure/repositories/postgresql/SequelizeAttachmentRepository.ts";
 import SequelizeOccurrenceRepository from "../../infrastructure/repositories/postgresql/SequelizeOccurrenceRepository.ts";
@@ -11,7 +12,13 @@ import { FindAllAttachmentUseCase } from "../../application/attachment/use-cases
 import { FindOneByIdAttachmentUseCase } from "../../application/attachment/use-cases/FindOneByIdAttachment.ts";
 import { UpdateAttachmentUseCase } from "../../application/attachment/use-cases/UpdateAttachment.ts";
 import { DeleteAttachmentUseCase } from "../../application/attachment/use-cases/DeleteAttachment.ts";
+import { UploadOccurrenceAttachmentUseCase } from "../../application/attachment/use-cases/UploadOccurrenceAttachment.ts";
+import { FindOccurrenceAttachmentsUseCase } from "../../application/attachment/use-cases/FindOccurrenceAttachments.ts";
+import { createStorageService } from "../../infrastructure/storage/StorageServiceFactory.ts";
+import { uploadImage } from "../middlewares/uploadImage.ts";
 import { authMiddleware } from "../middlewares/auth.ts";
+import { authorize } from "../middlewares/authorize.ts";
+import { UserRole } from "../../domain/entities/User.ts";
 import type { AuthService } from "../../domain/services/AuthService.ts";
 
 export class AttachmentRoutes {
@@ -23,22 +30,60 @@ export class AttachmentRoutes {
       AttachmentModel
     );
     const occurrenceRepository = new SequelizeOccurrenceRepository(
-      OccurrenceModel
+      OccurrenceModel,
+      CategoryModel
     );
+    const storageService = createStorageService();
     const controller = new AttachmentController(
       new CreateAttachmentUseCase(attachmentRepository, occurrenceRepository),
       new FindAllAttachmentUseCase(attachmentRepository),
       new FindOneByIdAttachmentUseCase(attachmentRepository),
       new UpdateAttachmentUseCase(attachmentRepository),
-      new DeleteAttachmentUseCase(attachmentRepository)
+      new DeleteAttachmentUseCase(attachmentRepository, storageService),
+      new UploadOccurrenceAttachmentUseCase(
+        attachmentRepository,
+        occurrenceRepository,
+        storageService
+      ),
+      new FindOccurrenceAttachmentsUseCase(
+        attachmentRepository,
+        occurrenceRepository
+      ),
+      storageService
     );
     this.router.use(authMiddleware(authService));
+    /**
+     * @swagger
+     * /attachments/upload:
+     *   post:
+     *     tags: [Attachment]
+     *     summary: Enviar imagem de evidência para uma ocorrência
+     *     description: Upload multipart/form-data (campo "file") persistido no Supabase Storage (ou disco local em desenvolvimento).
+     *     security: [{ bearerAuth: [] }]
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         multipart/form-data:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               occurrenceId: { type: integer }
+     *               file: { type: string, format: binary }
+     *     responses:
+     *       201: { description: Anexo enviado e registrado }
+     *       400: { description: Arquivo inválido, tipo não suportado ou tamanho excedido }
+     *       403: { description: Usuário não tem acesso à ocorrência }
+     *       404: { description: Ocorrência não encontrada }
+     */
+    this.router.post("/upload", uploadImage, (req, res, next) =>
+      controller.upload({ req, res, next })
+    );
     /**
      * @swagger
      * /attachments:
      *   post:
      *     tags: [Attachment]
-     *     summary: Adicionar anexo a uma ocorrência
+     *     summary: Adicionar anexo a uma ocorrência (registro direto por filePath)
      *     security: [{ bearerAuth: [] }]
      *     requestBody:
      *       required: true
@@ -55,13 +100,28 @@ export class AttachmentRoutes {
      * /attachments:
      *   get:
      *     tags: [Attachment]
-     *     summary: Listar anexos
+     *     summary: Listar anexos de uma ocorrência
+     *     description: >
+     *       Com "occurrenceId" a listagem respeita o escopo da ocorrência
+     *       (solicitante vê as próprias, gestor vê todas). Sem o parâmetro a
+     *       listagem é global e restrita a gestores.
      *     security: [{ bearerAuth: [] }]
+     *     parameters:
+     *       - { in: query, name: occurrenceId, required: false, schema: { type: integer } }
      *     responses:
-     *       200: { description: Lista de anexos }
+     *       200: { description: Lista de anexos com URL pública }
+     *       403: { description: Usuário não tem acesso à ocorrência }
      */
-    this.router.get("/", (req, res, next) =>
-      controller.findAll({ req, res, next })
+    this.router.get(
+      "/",
+      (req, res, next) => {
+        // A listagem sem filtro expõe anexos de todas as ocorrências.
+        if (req.query.occurrenceId === undefined) {
+          return authorize(UserRole.MANAGER)(req, res, next);
+        }
+        return next();
+      },
+      (req, res, next) => controller.findAll({ req, res, next })
     );
     /**
      * @swagger

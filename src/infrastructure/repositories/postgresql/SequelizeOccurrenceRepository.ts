@@ -1,22 +1,63 @@
-import type { ModelStatic } from "sequelize";
+import { Op, literal, type ModelStatic, type Order } from "sequelize";
+import { Priority } from "../../../domain/enums/priority.enum.ts";
 import {
   Occurrence,
   type OccurrenceData,
 } from "../../../domain/entities/Occurrence.ts";
-import type { OccurrenceRepository } from "../../../domain/repositories/OccurrenceRepository.ts";
+import type {
+  DashboardIndicators,
+  OccurrenceFilter,
+  OccurrenceRepository,
+  PaginatedResult,
+} from "../../../domain/repositories/OccurrenceRepository.ts";
+import { OccurrenceStatus } from "../../../domain/enums/occurrence-status.enum.ts";
 import type { OccurrenceModel } from "../../database/models/OccurrenceModel.ts";
+import type { CategoryModel } from "../../database/models/CategoryModel.ts";
 
 export default class SequelizeOccurrenceRepository
   implements OccurrenceRepository
 {
   private occurrenceModel: ModelStatic<OccurrenceModel>;
+  private categoryModel: ModelStatic<CategoryModel>;
 
-  constructor(occurrenceModel: ModelStatic<OccurrenceModel>) {
+  constructor(
+    occurrenceModel: ModelStatic<OccurrenceModel>,
+    categoryModel: ModelStatic<CategoryModel>
+  ) {
     this.occurrenceModel = occurrenceModel;
+    this.categoryModel = categoryModel;
   }
 
+  /**
+   * Relacionamentos carregados apenas para projetar os nomes exibidos na UI
+   * (solicitante, responsável e categoria), evitando que o cliente precise
+   * de uma segunda chamada — e de permissão — para traduzir ids em nomes.
+   */
+  private static readonly PRIORITY_WEIGHT: Record<Priority, number> = {
+    [Priority.CRITICAL]: 4,
+    [Priority.HIGH]: 3,
+    [Priority.MEDIUM]: 2,
+    [Priority.LOW]: 1,
+  };
+
+  private static readonly NAME_INCLUDES = [
+    { association: "requester", attributes: ["id", "name"], required: false },
+    { association: "assignee", attributes: ["id", "name"], required: false },
+    { association: "category", attributes: ["id", "name"], required: false },
+  ];
+
   private mapToDomain(occurrenceModel: OccurrenceModel): Occurrence {
-    return new Occurrence(occurrenceModel.get({ plain: true }));
+    const plain = occurrenceModel.get({ plain: true }) as OccurrenceData & {
+      requester?: { name?: string } | null;
+      assignee?: { name?: string } | null;
+      category?: { name?: string } | null;
+    };
+
+    const occurrence = new Occurrence(plain);
+    occurrence.requesterName = plain.requester?.name ?? null;
+    occurrence.assigneeName = plain.assignee?.name ?? null;
+    occurrence.categoryName = plain.category?.name ?? null;
+    return occurrence;
   }
 
   async create(occurrenceData: OccurrenceData): Promise<Occurrence> {
@@ -24,13 +65,93 @@ export default class SequelizeOccurrenceRepository
     return this.mapToDomain(created);
   }
 
-  async findAll(): Promise<Occurrence[]> {
-    const occurrences = await this.occurrenceModel.findAll();
-    return occurrences.map((occurrence) => this.mapToDomain(occurrence));
+  private buildWhere(filter: OccurrenceFilter = {}) {
+    const where: Record<string, unknown> = {};
+
+    if (filter.requesterId !== undefined) where.requesterId = filter.requesterId;
+    if (filter.assigneeId !== undefined) where.assigneeId = filter.assigneeId;
+    if (filter.categoryId !== undefined) where.categoryId = filter.categoryId;
+    if (filter.status !== undefined) where.status = filter.status;
+    if (filter.priority !== undefined) where.priority = filter.priority;
+
+    if (filter.search) {
+      where[Op.or as unknown as string] = [
+        { title: { [Op.iLike]: `%${filter.search}%` } },
+        { description: { [Op.iLike]: `%${filter.search}%` } },
+      ];
+    }
+
+    if (filter.createdFrom || filter.createdTo) {
+      where.createdAt = {
+        ...(filter.createdFrom && { [Op.gte]: filter.createdFrom }),
+        ...(filter.createdTo && { [Op.lte]: filter.createdTo }),
+      };
+    }
+
+    if (filter.resolvedFrom || filter.resolvedTo) {
+      where.resolvedAt = {
+        ...(filter.resolvedFrom && { [Op.gte]: filter.resolvedFrom }),
+        ...(filter.resolvedTo && { [Op.lte]: filter.resolvedTo }),
+      };
+    }
+
+    return where;
+  }
+
+  /**
+   * A prioridade é um enum de texto, então ordenar pela coluna daria ordem
+   * alfabética (CRITICAL, HIGH, LOW, MEDIUM). O CASE traduz para severidade.
+   */
+  private buildOrder(filter: OccurrenceFilter): Order {
+    const direction = filter.sortOrder === "ASC" ? "ASC" : "DESC";
+
+    if (filter.sortBy === "priority") {
+      const severityCases = Object.entries(
+        SequelizeOccurrenceRepository.PRIORITY_WEIGHT
+      )
+        .map(([priority, weight]) => `WHEN '${priority}' THEN ${weight}`)
+        .join(" ");
+      return [
+        [
+          literal(`CASE "Occurrence"."priority" ${severityCases} ELSE 0 END`),
+          direction,
+        ],
+        // Empate de prioridade é resolvido pelo tempo de abertura.
+        ["createdAt", "ASC"],
+      ];
+    }
+
+    return [[filter.sortBy ?? "createdAt", direction]];
+  }
+
+  async findAll(
+    filter: OccurrenceFilter = {}
+  ): Promise<PaginatedResult<Occurrence>> {
+    const page = filter.page && filter.page > 0 ? filter.page : 1;
+    const limit = filter.limit && filter.limit > 0 ? filter.limit : 20;
+    const where = this.buildWhere(filter);
+
+    const { rows, count } = await this.occurrenceModel.findAndCountAll({
+      where,
+      include: SequelizeOccurrenceRepository.NAME_INCLUDES,
+      limit,
+      offset: (page - 1) * limit,
+      order: this.buildOrder(filter),
+    });
+
+    return {
+      data: rows.map((row) => this.mapToDomain(row)),
+      page,
+      limit,
+      total: count,
+      totalPages: Math.max(1, Math.ceil(count / limit)),
+    };
   }
 
   async findById(id: number): Promise<Occurrence | null> {
-    const occurrence = await this.occurrenceModel.findByPk(id);
+    const occurrence = await this.occurrenceModel.findByPk(id, {
+      include: SequelizeOccurrenceRepository.NAME_INCLUDES,
+    });
     return occurrence ? this.mapToDomain(occurrence) : null;
   }
 
@@ -42,7 +163,9 @@ export default class SequelizeOccurrenceRepository
     if (!occurrence) return null;
 
     await occurrence.update(occurrenceData);
-    return this.mapToDomain(occurrence);
+    // Relê com os relacionamentos para que a resposta já traga os nomes
+    // atualizados (o responsável muda justamente nestas operações).
+    return this.findById(id);
   }
 
   async delete(id: number): Promise<boolean> {
@@ -51,5 +174,89 @@ export default class SequelizeOccurrenceRepository
 
     await occurrence.destroy();
     return true;
+  }
+
+  async getDashboardIndicators(): Promise<DashboardIndicators> {
+    const [total, statusRows, priorityRows, categoryRows, resolvedRows] =
+      await Promise.all([
+        this.occurrenceModel.count(),
+        this.occurrenceModel.findAll({
+          attributes: [
+            "status",
+            [this.occurrenceModel.sequelize!.fn("COUNT", "*"), "total"],
+          ],
+          group: ["status"],
+          raw: true,
+        }) as unknown as Promise<Array<{ status: string; total: string }>>,
+        this.occurrenceModel.findAll({
+          attributes: [
+            "priority",
+            [this.occurrenceModel.sequelize!.fn("COUNT", "*"), "total"],
+          ],
+          group: ["priority"],
+          raw: true,
+        }) as unknown as Promise<Array<{ priority: string; total: string }>>,
+        this.occurrenceModel.findAll({
+          attributes: [
+            "categoryId",
+            [this.occurrenceModel.sequelize!.fn("COUNT", "*"), "total"],
+          ],
+          group: ["categoryId"],
+          raw: true,
+        }) as unknown as Promise<
+          Array<{ categoryId: number; total: string }>
+        >,
+        this.occurrenceModel.findAll({
+          where: { resolvedAt: { [Op.ne]: null } },
+          attributes: ["createdAt", "resolvedAt"],
+          raw: true,
+        }) as unknown as Promise<
+          Array<{ createdAt: Date; resolvedAt: Date }>
+        >,
+      ]);
+
+    const byStatus: Record<string, number> = {};
+    for (const row of statusRows) byStatus[row.status] = Number(row.total);
+
+    const byPriority: Record<string, number> = {};
+    for (const row of priorityRows) byPriority[row.priority] = Number(row.total);
+
+    const categoryIds = categoryRows.map((row) => row.categoryId);
+    const categories = categoryIds.length
+      ? await this.categoryModel.findAll({ where: { id: categoryIds } })
+      : [];
+    const categoryNameById = new Map(
+      categories.map((category) => [category.id, category.name])
+    );
+    const byCategory = categoryRows.map((row) => ({
+      categoryId: row.categoryId,
+      categoryName: categoryNameById.get(row.categoryId) ?? "Unknown",
+      total: Number(row.total),
+    }));
+
+    const averageResolutionHours = resolvedRows.length
+      ? resolvedRows.reduce((acc, row) => {
+          const diffMs =
+            new Date(row.resolvedAt).getTime() -
+            new Date(row.createdAt).getTime();
+          return acc + diffMs / (1000 * 60 * 60);
+        }, 0) / resolvedRows.length
+      : null;
+
+    return {
+      total,
+      byStatus,
+      byPriority,
+      byCategory,
+      open: byStatus[OccurrenceStatus.OPEN] ?? 0,
+      inProgress:
+        (byStatus[OccurrenceStatus.IN_ANALYSIS] ?? 0) +
+        (byStatus[OccurrenceStatus.IN_PROGRESS] ?? 0),
+      resolved: byStatus[OccurrenceStatus.RESOLVED] ?? 0,
+      averageResolutionHours:
+        averageResolutionHours !== null
+          ? Number(averageResolutionHours.toFixed(2))
+          : null,
+    };
   }
 }

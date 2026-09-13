@@ -8,6 +8,7 @@ import type { UpdateCommentUseCase } from "../../application/comment/use-cases/U
 import type { DeleteCommentUseCase } from "../../application/comment/use-cases/DeleteComment.ts";
 import { UpdateCommentDTO } from "../../application/comment/dtos/UpdateCommentDTO.ts";
 import CommentView from "../presenters/CommentView.ts";
+import type { Actor } from "../../domain/services/OccurrencePolicy.ts";
 
 export default class CommentController {
   constructor(
@@ -31,27 +32,42 @@ export default class CommentController {
     return authorId;
   }
 
+  private actor(req: ReqResNextFunction["req"]): Actor {
+    if (!req.user)
+      throw new ValidationError("Authenticated user is required");
+    return { id: req.user.userId, role: req.user.role };
+  }
+
   async create({ req, res, next }: ReqResNextFunction): Promise<void> {
     try {
       const dto = CreateCommentDTO.create({
         ...req.body,
         authorId: this.authorId(req),
       });
-      res
-        .status(201)
-        .json(CommentView.render(await this.createCommentUseCase.execute(dto)));
+      const comment = await this.createCommentUseCase.execute(
+        dto,
+        req.user?.role
+      );
+      res.status(201).json(CommentView.render(comment));
     } catch (error) {
       next(error);
     }
   }
 
-  async findAll({ res, next }: ReqResNextFunction): Promise<void> {
+  async findAll({ req, res, next }: ReqResNextFunction): Promise<void> {
     try {
-      res
-        .status(200)
-        .json(
-          CommentView.renderMany(await this.findAllCommentUseCase.execute())
-        );
+      const occurrenceIdRaw = req.query.occurrenceId as string | undefined;
+      const occurrenceId = occurrenceIdRaw
+        ? parseInt(occurrenceIdRaw, 10)
+        : undefined;
+      if (occurrenceIdRaw && Number.isNaN(occurrenceId))
+        throw new ValidationError("occurrenceId must be a valid number");
+
+      const comments = await this.findAllCommentUseCase.execute(
+        { occurrenceId },
+        req.user?.role
+      );
+      res.status(200).json(CommentView.renderMany(comments));
     } catch (error) {
       next(error);
     }
@@ -81,7 +97,8 @@ export default class CommentController {
           CommentView.render(
             await this.updateCommentUseCase.execute(
               this.parseId(req.params.id),
-              UpdateCommentDTO.create(req.body)
+              UpdateCommentDTO.create(req.body),
+              this.actor(req)
             )
           )
         );
@@ -92,7 +109,10 @@ export default class CommentController {
 
   async delete({ req, res, next }: ReqResNextFunction): Promise<void> {
     try {
-      await this.deleteCommentUseCase.execute(this.parseId(req.params.id));
+      await this.deleteCommentUseCase.execute(
+        this.parseId(req.params.id),
+        this.actor(req)
+      );
       res.status(204).send();
     } catch (error) {
       next(error);

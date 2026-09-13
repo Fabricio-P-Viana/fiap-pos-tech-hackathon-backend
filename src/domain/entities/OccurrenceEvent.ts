@@ -12,6 +12,15 @@ export interface OccurrenceEventData {
   actorId: number;
   createdAt?: Date;
   updatedAt?: Date;
+  /** Projeções somente leitura preenchidas pelo repositório. */
+  actorName?: string | null;
+  occurrenceTitle?: string | null;
+  /**
+   * Versões legíveis de previousValue/newValue: para ASSIGNEE_CHANGED os
+   * valores gravados são ids de usuário, e aqui viram os nomes.
+   */
+  previousLabel?: string | null;
+  newLabel?: string | null;
 }
 
 export class OccurrenceEvent {
@@ -24,6 +33,10 @@ export class OccurrenceEvent {
   actorId: number;
   createdAt?: Date;
   updatedAt?: Date;
+  actorName?: string | null;
+  occurrenceTitle?: string | null;
+  previousLabel?: string | null;
+  newLabel?: string | null;
 
   constructor({
     id,
@@ -35,6 +48,10 @@ export class OccurrenceEvent {
     actorId,
     createdAt,
     updatedAt,
+    actorName,
+    occurrenceTitle,
+    previousLabel,
+    newLabel,
   }: OccurrenceEventData) {
     this.id = id;
     this.occurrenceId = occurrenceId;
@@ -45,5 +62,9 @@ export class OccurrenceEvent {
     this.actorId = actorId;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
+    this.actorName = actorName;
+    this.occurrenceTitle = occurrenceTitle;
+    this.previousLabel = previousLabel;
+    this.newLabel = newLabel;
   }
 }

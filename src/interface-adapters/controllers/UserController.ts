@@ -23,7 +23,7 @@ export default class UserController {
   private deleteUserUseCase: DeleteUserUseCase;
   private findOneByIdUserUseCase: FindOneByIdUserUseCase;
   private findUsersByRoleUseCase: FindUsersByRoleUseCase;
-  private createTeacherUseCase: CreateManagerUseCase;
+  private createManagerUseCase: CreateManagerUseCase;
 
   constructor(
     createUserUseCase: CreateUserUseCase,
@@ -32,7 +32,7 @@ export default class UserController {
     deleteUserUseCase: DeleteUserUseCase,
     findOneByIdUserUseCase: FindOneByIdUserUseCase,
     findUsersByRoleUseCase: FindUsersByRoleUseCase,
-    createTeacherUseCase: CreateManagerUseCase
+    createManagerUseCase: CreateManagerUseCase
   ) {
     this.createUserUseCase = createUserUseCase;
     this.findAllUserUseCase = findAllUserUseCase;
@@ -40,7 +40,7 @@ export default class UserController {
     this.deleteUserUseCase = deleteUserUseCase;
     this.findOneByIdUserUseCase = findOneByIdUserUseCase;
     this.findUsersByRoleUseCase = findUsersByRoleUseCase;
-    this.createTeacherUseCase = createTeacherUseCase;
+    this.createManagerUseCase = createManagerUseCase;
   }
 
   private parseId(id: string | string[]): number {
@@ -65,12 +65,12 @@ export default class UserController {
     }
   }
 
-  async createTeacher({ req, res, next }: ReqResNextFunction): Promise<void> {
+  async createManager({ req, res, next }: ReqResNextFunction): Promise<void> {
     try {
       const dto = CreateUserDTO.create(req.body);
-      const teacher = await this.createTeacherUseCase.execute(dto);
+      const manager = await this.createManagerUseCase.execute(dto);
 
-      res.status(201).json(UserView.render(teacher));
+      res.status(201).json(UserView.render(manager));
     } catch (error) {
       next(error);
     }

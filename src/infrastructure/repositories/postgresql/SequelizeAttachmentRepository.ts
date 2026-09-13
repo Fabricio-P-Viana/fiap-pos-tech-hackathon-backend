@@ -29,6 +29,14 @@ export default class SequelizeAttachmentRepository
     return attachments.map((attachment) => this.mapToDomain(attachment));
   }
 
+  async findByOccurrenceId(occurrenceId: number): Promise<Attachment[]> {
+    const attachments = await this.attachmentModel.findAll({
+      where: { occurrenceId },
+      order: [["createdAt", "ASC"]],
+    });
+    return attachments.map((attachment) => this.mapToDomain(attachment));
+  }
+
   async findById(id: number): Promise<Attachment | null> {
     const attachment = await this.attachmentModel.findByPk(id);
     return attachment ? this.mapToDomain(attachment) : null;

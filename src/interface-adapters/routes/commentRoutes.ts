@@ -3,6 +3,7 @@ import CommentController from "../controllers/CommentController.ts";
 import {
   CommentModel,
   OccurrenceModel,
+  CategoryModel,
 } from "../../infrastructure/database/sequelize.ts";
 import SequelizeCommentRepository from "../../infrastructure/repositories/postgresql/SequelizeCommentRepository.ts";
 import SequelizeOccurrenceRepository from "../../infrastructure/repositories/postgresql/SequelizeOccurrenceRepository.ts";
@@ -21,7 +22,8 @@ export class CommentRoutes {
     this.router = Router();
     const commentRepository = new SequelizeCommentRepository(CommentModel);
     const occurrenceRepository = new SequelizeOccurrenceRepository(
-      OccurrenceModel
+      OccurrenceModel,
+      CategoryModel
     );
     const controller = new CommentController(
       new CreateCommentUseCase(commentRepository, occurrenceRepository),
@@ -54,7 +56,10 @@ export class CommentRoutes {
      *   get:
      *     tags: [Comment]
      *     summary: Listar comentários
+     *     description: Comentários internos só são retornados para gestores. Use ?occurrenceId= para filtrar por ocorrência.
      *     security: [{ bearerAuth: [] }]
+     *     parameters:
+     *       - { in: query, name: occurrenceId, required: false, schema: { type: integer } }
      *     responses:
      *       200: { description: Lista de comentários }
      */

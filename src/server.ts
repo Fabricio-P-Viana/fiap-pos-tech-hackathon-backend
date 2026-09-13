@@ -56,6 +56,8 @@ class Server {
     this.app.use(RequestLoggerMiddleware);
     this.app.use(corsMiddleware);
     this.app.use(express.json());
+
+    this.app.use("/uploads", express.static("uploads"));
   }
 
   setupRoutes(): void {

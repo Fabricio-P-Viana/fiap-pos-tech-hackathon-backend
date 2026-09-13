@@ -3,6 +3,7 @@ import RatingController from "../controllers/RatingController.ts";
 import {
   RatingModel,
   OccurrenceModel,
+  CategoryModel,
 } from "../../infrastructure/database/sequelize.ts";
 import SequelizeRatingRepository from "../../infrastructure/repositories/postgresql/SequelizeRatingRepository.ts";
 import SequelizeOccurrenceRepository from "../../infrastructure/repositories/postgresql/SequelizeOccurrenceRepository.ts";
@@ -21,7 +22,8 @@ export class RatingRoutes {
     this.router = Router();
     const ratingRepository = new SequelizeRatingRepository(RatingModel);
     const occurrenceRepository = new SequelizeOccurrenceRepository(
-      OccurrenceModel
+      OccurrenceModel,
+      CategoryModel
     );
     const controller = new RatingController(
       new CreateRatingUseCase(ratingRepository, occurrenceRepository),
@@ -55,9 +57,14 @@ export class RatingRoutes {
      *   get:
      *     tags: [Rating]
      *     summary: Listar avaliações
+     *     description: >
+     *       O gestor vê todas as avaliações; o solicitante vê apenas as que
+     *       escreveu. Use "occurrenceId" para a avaliação de uma ocorrência.
      *     security: [{ bearerAuth: [] }]
+     *     parameters:
+     *       - { in: query, name: occurrenceId, required: false, schema: { type: integer } }
      *     responses:
-     *       200: { description: Lista de avaliações }
+     *       200: { description: Lista de avaliações no escopo do usuário }
      */
     this.router.get("/", (req, res, next) =>
       controller.findAll({ req, res, next })
