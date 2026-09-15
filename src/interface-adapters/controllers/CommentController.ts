@@ -65,7 +65,7 @@ export default class CommentController {
 
       const comments = await this.findAllCommentUseCase.execute(
         { occurrenceId },
-        req.user?.role
+        this.actor(req)
       );
       res.status(200).json(CommentView.renderMany(comments));
     } catch (error) {
@@ -80,7 +80,8 @@ export default class CommentController {
         .json(
           CommentView.render(
             await this.findOneByIdCommentUseCase.execute(
-              this.parseId(req.params.id)
+              this.parseId(req.params.id),
+              this.actor(req)
             )
           )
         );

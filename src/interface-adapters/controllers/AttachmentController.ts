@@ -45,18 +45,17 @@ export default class AttachmentController {
   async create({ req, res, next }: ReqResNextFunction): Promise<void> {
     try {
       const attachment = await this.createAttachmentUseCase.execute(
-        CreateAttachmentDTO.create(req.body)
+        CreateAttachmentDTO.create(req.body),
+        this.actor(req)
       );
-      res.status(201).json(AttachmentView.render(attachment, this.publicUrl(attachment)));
+      res
+        .status(201)
+        .json(AttachmentView.render(attachment, this.publicUrl(attachment)));
     } catch (error) {
       next(error);
     }
   }
 
-  /**
-   * Com ?occurrenceId a listagem é escopada pela política da ocorrência.
-   * Sem o parâmetro devolve tudo — por isso a rota exige perfil de gestor.
-   */
   async findAll({ req, res, next }: ReqResNextFunction): Promise<void> {
     try {
       const occurrenceIdRaw = req.query.occurrenceId as string | undefined;
@@ -97,7 +96,8 @@ export default class AttachmentController {
   async findById({ req, res, next }: ReqResNextFunction): Promise<void> {
     try {
       const attachment = await this.findOneByIdAttachmentUseCase.execute(
-        this.parseId(req.params.id)
+        this.parseId(req.params.id),
+        this.actor(req)
       );
       res
         .status(200)
@@ -111,7 +111,8 @@ export default class AttachmentController {
     try {
       const attachment = await this.updateAttachmentUseCase.execute(
         this.parseId(req.params.id),
-        UpdateAttachmentDTO.create(req.body)
+        UpdateAttachmentDTO.create(req.body),
+        this.actor(req)
       );
       res
         .status(200)
@@ -123,7 +124,10 @@ export default class AttachmentController {
 
   async delete({ req, res, next }: ReqResNextFunction): Promise<void> {
     try {
-      await this.deleteAttachmentUseCase.execute(this.parseId(req.params.id));
+      await this.deleteAttachmentUseCase.execute(
+        this.parseId(req.params.id),
+        this.actor(req)
+      );
       res.status(204).send();
     } catch (error) {
       next(error);
