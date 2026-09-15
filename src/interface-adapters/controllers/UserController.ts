@@ -136,7 +136,11 @@ export default class UserController {
   async deleteUser({ req, res, next }: ReqResNextFunction): Promise<void> {
     try {
       const userId = this.parseId(req.params.id);
-      await this.deleteUserUseCase.execute(userId);
+      const currentUserId = req.user?.userId;
+      if (!currentUserId) {
+        throw new ValidationError("Authenticated user is required");
+      }
+      await this.deleteUserUseCase.execute(userId, currentUserId);
       res.status(204).send();
     } catch (error) {
       next(error);

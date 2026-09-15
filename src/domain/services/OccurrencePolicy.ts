@@ -98,7 +98,7 @@ export class OccurrencePolicy {
   }
 
   static canAttach(actor: Actor, occurrence: Occurrence): boolean {
-    return this.canView(actor, occurrence) && !this.isFinal(occurrence);
+    return this.isOwner(actor, occurrence) && !this.isFinal(occurrence);
   }
 
   static canRate(actor: Actor, occurrence: Occurrence): boolean {

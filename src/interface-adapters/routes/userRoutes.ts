@@ -271,6 +271,8 @@ export class UserRoutes {
      *     responses:
      *       204:
      *         description: Usuário deletado com sucesso
+     *       403:
+     *         description: Solicitante só pode excluir a própria conta; gestor pode excluir qualquer usuário
      *       400:
      *         description: ID inválido
      *       404:

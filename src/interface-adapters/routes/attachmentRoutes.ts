@@ -37,9 +37,16 @@ export class AttachmentRoutes {
     const controller = new AttachmentController(
       new CreateAttachmentUseCase(attachmentRepository, occurrenceRepository),
       new FindAllAttachmentUseCase(attachmentRepository),
-      new FindOneByIdAttachmentUseCase(attachmentRepository),
-      new UpdateAttachmentUseCase(attachmentRepository),
-      new DeleteAttachmentUseCase(attachmentRepository, storageService),
+      new FindOneByIdAttachmentUseCase(
+        attachmentRepository,
+        occurrenceRepository
+      ),
+      new UpdateAttachmentUseCase(attachmentRepository, occurrenceRepository),
+      new DeleteAttachmentUseCase(
+        attachmentRepository,
+        occurrenceRepository,
+        storageService
+      ),
       new UploadOccurrenceAttachmentUseCase(
         attachmentRepository,
         occurrenceRepository,
@@ -71,8 +78,8 @@ export class AttachmentRoutes {
      *               file: { type: string, format: binary }
      *     responses:
      *       201: { description: Anexo enviado e registrado }
-     *       400: { description: Arquivo inválido, tipo não suportado ou tamanho excedido }
-     *       403: { description: Usuário não tem acesso à ocorrência }
+     *       400: { description: Arquivo inválido, tipo não suportado, tamanho excedido ou ocorrência encerrada }
+     *       403: { description: Apenas o solicitante dono da ocorrência pode anexar imagens }
      *       404: { description: Ocorrência não encontrada }
      */
     this.router.post("/upload", uploadImage, (req, res, next) =>
@@ -84,12 +91,15 @@ export class AttachmentRoutes {
      *   post:
      *     tags: [Attachment]
      *     summary: Adicionar anexo a uma ocorrência (registro direto por filePath)
+     *     description: Mesma regra do upload — somente o solicitante dono, com a ocorrência ativa.
      *     security: [{ bearerAuth: [] }]
      *     requestBody:
      *       required: true
      *       content: { application/json: { schema: { $ref: '#/components/schemas/AttachmentInput' } } }
      *     responses:
      *       201: { description: Anexo criado }
+     *       400: { description: Ocorrência encerrada }
+     *       403: { description: Apenas o solicitante dono da ocorrência pode anexar }
      *       404: { description: Ocorrência não encontrada }
      */
     this.router.post("/", (req, res, next) =>
@@ -129,11 +139,13 @@ export class AttachmentRoutes {
      *   get:
      *     tags: [Attachment]
      *     summary: Buscar anexo por ID
+     *     description: Solicitante acessa anexos das próprias ocorrências; gestor acessa todos.
      *     security: [{ bearerAuth: [] }]
      *     parameters:
      *       - { in: path, name: id, required: true, schema: { type: integer } }
      *     responses:
      *       200: { description: Anexo encontrado }
+     *       403: { description: Usuário não tem acesso à ocorrência }
      *       404: { description: Anexo não encontrado }
      */
     this.router.get("/:id", (req, res, next) =>
@@ -145,11 +157,14 @@ export class AttachmentRoutes {
      *   put:
      *     tags: [Attachment]
      *     summary: Atualizar anexo
+     *     description: Somente o solicitante dono, enquanto a ocorrência estiver ativa.
      *     security: [{ bearerAuth: [] }]
      *     parameters:
      *       - { in: path, name: id, required: true, schema: { type: integer } }
      *     responses:
      *       200: { description: Anexo atualizado }
+     *       400: { description: Ocorrência encerrada }
+     *       403: { description: Apenas o solicitante dono da ocorrência }
      */
     this.router.put("/:id", (req, res, next) =>
       controller.update({ req, res, next })
@@ -160,11 +175,14 @@ export class AttachmentRoutes {
      *   delete:
      *     tags: [Attachment]
      *     summary: Excluir anexo
+     *     description: Somente o solicitante dono, enquanto a ocorrência estiver ativa; imagens de ocorrência encerrada ficam no histórico.
      *     security: [{ bearerAuth: [] }]
      *     parameters:
      *       - { in: path, name: id, required: true, schema: { type: integer } }
      *     responses:
      *       204: { description: Anexo excluído }
+     *       400: { description: Ocorrência encerrada }
+     *       403: { description: Apenas o solicitante dono da ocorrência }
      */
     this.router.delete("/:id", (req, res, next) =>
       controller.delete({ req, res, next })

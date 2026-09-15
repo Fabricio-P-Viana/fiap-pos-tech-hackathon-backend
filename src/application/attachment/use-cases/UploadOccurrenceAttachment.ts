@@ -3,10 +3,9 @@ import type { AttachmentRepository } from "../../../domain/repositories/Attachme
 import type { OccurrenceRepository } from "../../../domain/repositories/OccurrenceRepository.ts";
 import type { StorageService } from "../../../domain/services/StorageService.ts";
 import { ResourceNotFoundError } from "../../../domain/errors/ResourceNotFoundError.ts";
-import { UnauthorizedError } from "../../../domain/errors/UnauthorizedError.ts";
 import { ValidationError } from "../../../domain/errors/ValidationError.ts";
 import type { Actor } from "../../../domain/services/OccurrencePolicy.ts";
-import { OccurrencePolicy } from "../../../domain/services/OccurrencePolicy.ts";
+import { ensureAttachmentWriteAccess } from "./ensureAttachmentWriteAccess.ts";
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
@@ -36,15 +35,7 @@ export class UploadOccurrenceAttachmentUseCase {
     if (!occurrence)
       throw new ResourceNotFoundError("Occurrence", input.occurrenceId);
 
-    if (!OccurrencePolicy.canView(actor, occurrence)) {
-      throw new UnauthorizedError(input.occurrenceId);
-    }
-    // Ocorrência encerrada é histórico: não recebe novas imagens.
-    if (!OccurrencePolicy.canAttach(actor, occurrence)) {
-      throw new ValidationError(
-        "Occurrences in a final status no longer accept attachments"
-      );
-    }
+    ensureAttachmentWriteAccess(occurrence, actor);
 
     if (!ALLOWED_MIME_TYPES.includes(input.mimeType)) {
       throw new ValidationError(

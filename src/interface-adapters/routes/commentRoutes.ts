@@ -27,8 +27,8 @@ export class CommentRoutes {
     );
     const controller = new CommentController(
       new CreateCommentUseCase(commentRepository, occurrenceRepository),
-      new FindAllCommentUseCase(commentRepository),
-      new FindOneByIdCommentUseCase(commentRepository),
+      new FindAllCommentUseCase(commentRepository, occurrenceRepository),
+      new FindOneByIdCommentUseCase(commentRepository, occurrenceRepository),
       new UpdateCommentUseCase(commentRepository),
       new DeleteCommentUseCase(commentRepository)
     );
@@ -56,12 +56,17 @@ export class CommentRoutes {
      *   get:
      *     tags: [Comment]
      *     summary: Listar comentários
-     *     description: Comentários internos só são retornados para gestores. Use ?occurrenceId= para filtrar por ocorrência.
+     *     description: >
+     *       Solicitante precisa informar occurrenceId de uma ocorrência própria e
+     *       não recebe comentários internos. Gestor vê todos e pode omitir o
+     *       filtro para a listagem geral.
      *     security: [{ bearerAuth: [] }]
      *     parameters:
      *       - { in: query, name: occurrenceId, required: false, schema: { type: integer } }
      *     responses:
      *       200: { description: Lista de comentários }
+     *       400: { description: occurrenceId ausente para solicitante }
+     *       403: { description: Usuário não tem acesso à ocorrência }
      */
     this.router.get("/", (req, res, next) =>
       controller.findAll({ req, res, next })
@@ -72,11 +77,13 @@ export class CommentRoutes {
      *   get:
      *     tags: [Comment]
      *     summary: Buscar comentário por ID
+     *     description: Segue o acesso da ocorrência; comentário interno não existe para o solicitante.
      *     security: [{ bearerAuth: [] }]
      *     parameters:
      *       - { in: path, name: id, required: true, schema: { type: integer } }
      *     responses:
      *       200: { description: Comentário encontrado }
+     *       403: { description: Usuário não tem acesso à ocorrência }
      *       404: { description: Comentário não encontrado }
      */
     this.router.get("/:id", (req, res, next) =>

@@ -100,7 +100,24 @@ describe("OccurrencePolicy", () => {
     it("aceita comentário e anexo enquanto ativa", () => {
       const occurrence = buildOccurrence();
       expect(OccurrencePolicy.canComment(requester, occurrence)).toBe(true);
-      expect(OccurrencePolicy.canAttach(assignedManager, occurrence)).toBe(true);
+      expect(OccurrencePolicy.canComment(assignedManager, occurrence)).toBe(
+        true
+      );
+      expect(OccurrencePolicy.canAttach(requester, occurrence)).toBe(true);
+    });
+
+    it("permite anexo apenas ao solicitante dono", () => {
+      const occurrence = buildOccurrence();
+      expect(OccurrencePolicy.canAttach(assignedManager, occurrence)).toBe(
+        false
+      );
+      expect(OccurrencePolicy.canAttach(otherManager, occurrence)).toBe(false);
+      expect(
+        OccurrencePolicy.canAttach(
+          { id: 99, role: requester.role },
+          occurrence
+        )
+      ).toBe(false);
     });
   });
 });
