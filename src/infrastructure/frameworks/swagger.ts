@@ -26,7 +26,7 @@ const swaggerDefinition = {
       description: "Servidor do backend",
     },
     {
-      url: "https://hackathon-backend-latest.onrender.com/",
+      url: "https://hackathon-backend-sx6h.onrender.com/",
       description: "Servidor de produção",
     },
   ],
@@ -109,7 +109,11 @@ const swaggerDefinition = {
         properties: {
           id: { type: "integer", example: 1 },
           requesterId: { type: "integer", example: 2 },
-          requesterName: { type: "string", nullable: true, example: "Ana Lima" },
+          requesterName: {
+            type: "string",
+            nullable: true,
+            example: "Ana Lima",
+          },
           assigneeId: { type: "integer", nullable: true, example: 3 },
           assigneeName: {
             type: "string",
