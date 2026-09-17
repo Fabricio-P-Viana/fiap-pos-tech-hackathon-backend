@@ -130,9 +130,14 @@ export class OccurrenceRoutes {
      *   get:
      *     tags: [Occurrence]
      *     summary: Indicadores agregados para o painel do gestor
+     *     description: "Considera as ocorrências abertas no período e as avaliações dessas ocorrências. O período é limitado a 30 dias; sem parâmetros, usa os últimos 30 dias."
      *     security: [{ bearerAuth: [] }]
+     *     parameters:
+     *       - { in: query, name: from, required: false, schema: { type: string, format: date-time }, description: "Início do período. Sem \"to\", o fim é from + 30 dias" }
+     *       - { in: query, name: to, required: false, schema: { type: string, format: date-time }, description: "Fim do período. Sem \"from\", o início é to - 30 dias" }
      *     responses:
-     *       200: { description: Indicadores de volume, status, prioridade, categoria, tempo médio de resolução e notas das avaliações (média, distribuição e média por categoria) }
+     *       200: { description: "Indicadores de volume, status, prioridade, categoria, tempo médio de resolução, notas das avaliações e o período aplicado (period.from e period.to)" }
+     *       400: { description: "Data inválida, início posterior ao fim ou período maior que 30 dias" }
      *       403: { description: Apenas gestores podem acessar o dashboard }
      */
     this.router.get(

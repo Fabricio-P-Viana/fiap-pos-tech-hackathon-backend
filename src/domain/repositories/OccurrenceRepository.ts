@@ -45,6 +45,11 @@ export interface PaginatedResult<T> {
   totalPages: number;
 }
 
+export interface DashboardPeriod {
+  from: Date;
+  to: Date;
+}
+
 export interface DashboardIndicators {
   total: number;
   /** Indicadores de satisfação; ausente quando não há fonte de avaliações. */
@@ -67,5 +72,5 @@ export interface OccurrenceRepository {
     _occurrenceData: Partial<OccurrenceData>
   ): Promise<Occurrence | null>;
   delete(_id: number): Promise<boolean>;
-  getDashboardIndicators(): Promise<DashboardIndicators>;
+  getDashboardIndicators(_period: DashboardPeriod): Promise<DashboardIndicators>;
 }
