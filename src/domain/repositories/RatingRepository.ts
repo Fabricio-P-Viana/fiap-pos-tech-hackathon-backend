@@ -1,4 +1,5 @@
 import { Rating, RatingData } from "../entities/Rating.ts";
+import type { DashboardPeriod } from "./OccurrenceRepository.ts";
 
 export interface RatingIndicators {
   count: number;
@@ -21,7 +22,7 @@ export interface RatingFilter {
 export interface RatingRepository {
   create(_ratingData: RatingData): Promise<Rating>;
   findAll(_filter?: RatingFilter): Promise<Rating[]>;
-  getIndicators(): Promise<RatingIndicators>;
+  getIndicators(_period: DashboardPeriod): Promise<RatingIndicators>;
   findById(_id: number): Promise<Rating | null>;
   update(_id: number, _ratingData: Partial<RatingData>): Promise<Rating | null>;
   delete(_id: number): Promise<boolean>;

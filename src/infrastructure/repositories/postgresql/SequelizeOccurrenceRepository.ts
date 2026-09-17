@@ -6,6 +6,7 @@ import {
 } from "../../../domain/entities/Occurrence.ts";
 import type {
   DashboardIndicators,
+  DashboardPeriod,
   OccurrenceFilter,
   OccurrenceRepository,
   PaginatedResult,
@@ -176,11 +177,18 @@ export default class SequelizeOccurrenceRepository
     return true;
   }
 
-  async getDashboardIndicators(): Promise<DashboardIndicators> {
+  async getDashboardIndicators(
+    period: DashboardPeriod
+  ): Promise<DashboardIndicators> {
+    const createdInPeriod = {
+      createdAt: { [Op.between]: [period.from, period.to] },
+    };
+
     const [total, statusRows, priorityRows, categoryRows, resolvedRows] =
       await Promise.all([
-        this.occurrenceModel.count(),
+        this.occurrenceModel.count({ where: createdInPeriod }),
         this.occurrenceModel.findAll({
+          where: createdInPeriod,
           attributes: [
             "status",
             [this.occurrenceModel.sequelize!.fn("COUNT", "*"), "total"],
@@ -189,6 +197,7 @@ export default class SequelizeOccurrenceRepository
           raw: true,
         }) as unknown as Promise<Array<{ status: string; total: string }>>,
         this.occurrenceModel.findAll({
+          where: createdInPeriod,
           attributes: [
             "priority",
             [this.occurrenceModel.sequelize!.fn("COUNT", "*"), "total"],
@@ -197,6 +206,7 @@ export default class SequelizeOccurrenceRepository
           raw: true,
         }) as unknown as Promise<Array<{ priority: string; total: string }>>,
         this.occurrenceModel.findAll({
+          where: createdInPeriod,
           attributes: [
             "categoryId",
             [this.occurrenceModel.sequelize!.fn("COUNT", "*"), "total"],
@@ -207,7 +217,7 @@ export default class SequelizeOccurrenceRepository
           Array<{ categoryId: number; total: string }>
         >,
         this.occurrenceModel.findAll({
-          where: { resolvedAt: { [Op.ne]: null } },
+          where: { ...createdInPeriod, resolvedAt: { [Op.ne]: null } },
           attributes: ["createdAt", "resolvedAt"],
           raw: true,
         }) as unknown as Promise<

@@ -4,6 +4,7 @@ import { CreateOccurrenceDTO } from "../../application/occurrence/dtos/CreateOcc
 import { UpdateOccurrenceDTO } from "../../application/occurrence/dtos/UpdateOccurrenceDTO.ts";
 import { ChangeOccurrenceStatusDTO } from "../../application/occurrence/dtos/ChangeOccurrenceStatusDTO.ts";
 import { OccurrenceFilterDTO } from "../../application/occurrence/dtos/OccurrenceFilterDTO.ts";
+import { DashboardPeriodDTO } from "../../application/occurrence/dtos/DashboardPeriodDTO.ts";
 import type { CreateOccurrenceUseCase } from "../../application/occurrence/use-cases/CreateOccurrence.ts";
 import type { FindAllOccurrenceUseCase } from "../../application/occurrence/use-cases/FindAllOccurrence.ts";
 import type { FindOneByIdOccurrenceUseCase } from "../../application/occurrence/use-cases/FindOneByIdOccurrence.ts";
@@ -192,11 +193,14 @@ export default class OccurrenceController {
     }
   }
 
-  async dashboard({ res, next }: ReqResNextFunction): Promise<void> {
+  async dashboard({ req, res, next }: ReqResNextFunction): Promise<void> {
     try {
+      const period = DashboardPeriodDTO.create(
+        req.query as Record<string, unknown>
+      );
       res
         .status(200)
-        .json(await this.getDashboardIndicatorsUseCase.execute());
+        .json(await this.getDashboardIndicatorsUseCase.execute(period));
     } catch (error) {
       next(error);
     }

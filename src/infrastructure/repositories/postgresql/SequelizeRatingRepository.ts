@@ -1,5 +1,6 @@
-import type { ModelStatic } from "sequelize";
+import { Op, type ModelStatic } from "sequelize";
 import { Rating, type RatingData } from "../../../domain/entities/Rating.ts";
+import type { DashboardPeriod } from "../../../domain/repositories/OccurrenceRepository.ts";
 import type {
   RatingFilter,
   RatingIndicators,
@@ -40,14 +41,15 @@ export default class SequelizeRatingRepository implements RatingRepository {
    * Agrega as notas para o painel do gestor. A categoria vem por associação
    * (rating → ocorrência → categoria), evitando uma segunda consulta.
    */
-  async getIndicators(): Promise<RatingIndicators> {
+  async getIndicators(period: DashboardPeriod): Promise<RatingIndicators> {
     const ratings = await this.ratingModel.findAll({
       attributes: ["score"],
       include: [
         {
           association: "occurrence",
           attributes: ["id", "categoryId"],
-          required: false,
+          required: true,
+          where: { createdAt: { [Op.between]: [period.from, period.to] } },
           include: [
             { association: "category", attributes: ["id", "name"], required: false },
           ],

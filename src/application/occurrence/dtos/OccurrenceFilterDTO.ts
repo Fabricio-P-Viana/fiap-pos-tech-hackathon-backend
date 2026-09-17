@@ -20,7 +20,7 @@ function parseIntOrUndefined(value: unknown, field: string): number | undefined 
   return parsed;
 }
 
-function parseDateOrUndefined(value: unknown, field: string): Date | undefined {
+export function parseDateOrUndefined(value: unknown, field: string): Date | undefined {
   if (value === undefined || value === null || value === "") return undefined;
   const raw = Array.isArray(value) ? value[0] : value;
   const date = new Date(raw as string);
